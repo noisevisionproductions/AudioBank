@@ -1,10 +1,13 @@
 [versions]
 activityCompose = "1.9.2"
 agp = "8.5.2"
+amazonawsAwsAndroidSdkCore = "2.22.0"
+amazonawsAwsAndroidSdkS3 = "2.22.0"
 android-compileSdk = "34"
 android-minSdk = "24"
 android-targetSdk = "34"
-androidx-activityCompose = "1.9.1"
+androidDriver = "2.0.2"
+androidx-activityCompose = "1.9.2"
 androidx-appcompat = "1.7.0"
 androidx-constraintlayout = "2.1.4"
 androidx-core-ktx = "1.13.1"
@@ -13,19 +16,58 @@ androidx-lifecycle = "2.8.0"
 androidx-material = "1.12.0"
 androidx-test-junit = "1.2.1"
 androidxFoundation = "<latest_version>"
+auth = "0.10.5"
+awsAndroidSdkCore = "2.57.0"
+awsAndroidSdkCoreVersion = "2.77.0"
+awsAndroidSdkS3 = "2.57.0"
+awsAndroidSdkS3Version = "2.57.0"
+awsJavaSdk = "1.12.772"
+cloudinaryAndroid = "2.5.0"
 compose-plugin = "1.6.11"
+core = "2.5"
+firebaseAnalyticsKtx = "22.1.0"
+firebaseAuthKtx = "23.0.0"
+firebaseBom = "33.3.0"
+firebaseFirestore = "25.1.0"
+firebaseStorage = "21.0.0"
 foundationLayout = "1.7.2"
+githubTarsosdsp = "2.4"
+googleAuthLibraryCredentials = "1.27.0"
 junit = "4.13.2"
 kotlin = "2.0.20"
 activityKtx = "1.9.2"
 material = "<latest_version>"
+navigationCompose = "2.8.1"
+s3 = "1.0.0"
 ui = "1.7.2"
+navigationRuntimeKtx = "2.8.1"
 
 [libraries]
 androidx-activity-compose-v192 = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "androidxFoundation" }
 androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout", version.ref = "foundationLayout" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
+auth = { module = "aws.sdk.kotlin:auth", version.ref = "auth" }
+aws-android-sdk-core = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "awsAndroidSdkCore" }
+aws-android-sdk-core-v2220 = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "amazonawsAwsAndroidSdkCore" }
+aws-android-sdk-core-v2770 = { module = "com.amazonaws:aws-android-sdk-core", version.ref = "awsAndroidSdkCoreVersion" }
+aws-android-sdk-s3 = { module = "com.amazonaws:aws-android-sdk-s3", version.ref = "awsAndroidSdkS3" }
+aws-android-sdk-s3-v2220 = { module = "com.amazonaws:aws-android-sdk-s3", version.ref = "amazonawsAwsAndroidSdkS3" }
+aws-android-sdk-s3-v2570 = { module = "com.amazonaws:aws-android-sdk-s3", version.ref = "awsAndroidSdkS3Version" }
+aws-java-sdk = { module = "com.amazonaws:aws-java-sdk", version.ref = "awsJavaSdk" }
+aws-kotlin-sdk-s3 = { module = "com.amazonaws:aws-kotlin-sdk-s3", version.ref = "awsJavaSdk" }
+cloudinary-android = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroid" }
+core = { module = "be.tarsos.dsp:core", version.ref = "core" }
+firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebaseAnalyticsKtx" }
+firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-firestore = { module = "com.google.firebase:firebase-firestore", version.ref = "firebaseFirestore" }
+firebase-storage = { module = "com.google.firebase:firebase-storage", version.ref = "firebaseStorage" }
+github-tarsosdsp = { module = "com.github.JorenSix:TarsosDSP", version.ref = "githubTarsosdsp" }
+google-auth-library-credentials = { module = "com.google.auth:google-auth-library-credentials", version.ref = "googleAuthLibraryCredentials" }
+google-auth-library-oauth2-http = { module = "com.google.auth:google-auth-library-oauth2-http", version.ref = "googleAuthLibraryCredentials" }
+jvm = { module = "be.tarsos.dsp:jvm", version.ref = "core" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -40,6 +82,8 @@ androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", nam
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
 material = { module = "androidx.compose.material:material", version.ref = "material" }
+androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
+s3 = { module = "aws.sdk.kotlin:s3", version.ref = "s3" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

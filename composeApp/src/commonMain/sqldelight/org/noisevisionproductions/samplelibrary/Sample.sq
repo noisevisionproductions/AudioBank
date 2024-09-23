@@ -1,0 +1,28 @@
+import kotlin.Boolean;
+
+CREATE TABLE Sample (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    fileUri TEXT NOT NULL,
+    isFavorite INTEGER AS Boolean
+);
+
+insertSample:
+INSERT INTO Sample (name, fileUri, isFavorite)
+VALUES (?, ?, ?);
+
+selectAllSamples:
+SELECT * FROM Sample;
+
+selectSampleById:
+SELECT * FROM Sample
+WHERE id = ?;
+
+updateFavoriteStatus:
+UPDATE Sample
+SET isFavorite = ?
+WHERE id = ?;
+
+deleteSample:
+DELETE FROM Sample
+WHERE id = ?;
