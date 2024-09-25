@@ -20,6 +20,10 @@ repositories {
     }
 }
 kotlin {
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    compilerOptions {
+        freeCompilerArgs.add("-Xexpect-actual-classes")
+    }
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
@@ -46,6 +50,7 @@ kotlin {
             // libs for music info algorithms
             implementation(libs.core)
             implementation(libs.jvm)
+            runtimeOnly(libs.androidx.fragment.ktx)
 
             implementation(libs.google.auth.library.oauth2.http)
             implementation(libs.firebase.storage)
@@ -78,6 +83,7 @@ android {
 
     defaultConfig {
         applicationId = "org.noisevisionproductions.samplelibrary"
+        vectorDrawables.useSupportLibrary = true
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1

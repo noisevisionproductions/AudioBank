@@ -1,6 +1,7 @@
 package org.noisevisionproductions.samplelibrary.composeUI
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,19 +15,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.BottomSheetScaffold
-import androidx.compose.material.BottomSheetScaffoldState
-import androidx.compose.material.Divider
-import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Slider
-import androidx.compose.material.SliderDefaults
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
@@ -44,28 +39,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.jetbrains.compose.ui.tooling.preview.Preview
-
-val colors = Colors()
-
-@Composable
-@Preview
-fun App() {
-    BarWithFragmentsList()
-    BottomSheetConfiguration()
-}
+import org.jetbrains.compose.resources.painterResource
+import samplelibrary.composeapp.generated.resources.Res
+import samplelibrary.composeapp.generated.resources.icon_filters
+import samplelibrary.composeapp.generated.resources.icon_properties_menu
 
 @Composable
 fun BarWithFragmentsList() {
-    Surface(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        Column {
+    Surface {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colors.backgroundWhiteColor)
+        ) {
             Spacer(// miejsce nad paskiem
                 modifier = Modifier
                     .height(100.dp)
@@ -75,12 +66,11 @@ fun BarWithFragmentsList() {
             var currentScreen by remember { mutableStateOf(FragmentsTabs.Tab1) }
             val tabTitles = listOf("Dźwięki & pętle", "acapella", "Forum", "Czat", "Pomoc")
 
-            // pasek wyboru fragmentów
+            // Pasek wyboru fragmentów
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp)
-                    .shadow(elevation = 10.dp, shape = RectangleShape, clip = false)
                     .background(colors.barColor),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
@@ -112,12 +102,13 @@ fun BarWithFragmentsList() {
                 }
             }
             when (currentScreen) {
-                FragmentsTabs.Tab1 -> DynamicListWithSamples()
-                FragmentsTabs.Tab2 -> DynamicListWithSamples()
-                FragmentsTabs.Tab3 -> DynamicListWithSamples()
-                FragmentsTabs.Tab4 -> DynamicListWithSamples()
-                FragmentsTabs.Tab5 -> DynamicListWithSamples()
+                FragmentsTabs.Tab1 -> DynamicListWithSamples("samples/rimshots")
+                FragmentsTabs.Tab2 -> DynamicListWithSamples("acapella")
+                FragmentsTabs.Tab3 -> DynamicListWithSamples("acapella")
+                FragmentsTabs.Tab4 -> DynamicListWithSamples("acapella")
+                FragmentsTabs.Tab5 -> DynamicListWithSamples("acapella")
             }
+
         }
     }
 }
@@ -185,7 +176,9 @@ fun RowWithSearchBar(
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(25.dp))
+/*
                 .background(colors.backgroundGrayColor)
+*/
         ) {
             // wyszukiwarka
             TextField(
@@ -212,119 +205,21 @@ fun RowWithSearchBar(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Box(
-            contentAlignment = Alignment.Center,
+        Image(
+            painterResource(Res.drawable.icon_filters),
+            contentDescription = "Filters",
+            colorFilter = ColorFilter.tint(colors.textColorMain),
             modifier = Modifier
-                .size(56.dp)
                 .clip(CircleShape)
                 .background(colors.backgroundGrayColor)
+                .size(50.dp)
                 .clickable(
                     onClick = { isExpanded = !isExpanded },
                     indication = rememberRipple(bounded = true),
                     interactionSource = remember { MutableInteractionSource() }
                 )
-        ) {
-            Text(
-                //TODO: zamienic na vector?
-                text = "+",
-                color = colors.textColorMain,
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-            )
-        }
+        )
     }
     // okno z filtrami
     FiltersWindow(isExpanded, expandedHeight)
 }
-
-@Composable
-@OptIn(ExperimentalMaterialApi::class)
-fun UniversalBottomSheet(
-    scaffoldState: BottomSheetScaffoldState,
-    title: String,
-    content: @Composable () -> Unit,
-    onSliderChange: (Float) -> Unit
-) {
-    BottomSheetScaffold(
-        scaffoldState = scaffoldState,
-        sheetContent = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-            ) {
-                // Nagłówek BottomSheet, tytuł, kolory
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(colors.primaryBackgroundColor)
-                        .padding(top = 10.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Divider(
-                            color = colors.barColor,
-                            thickness = 2.dp,
-                            modifier = Modifier
-                                .weight(1f)
-                        )
-                        Text(
-                            color = colors.barColor,
-                            text = title,  // Dynamiczny tytuł
-                            style = MaterialTheme.typography.h6,
-                            modifier = Modifier.padding(8.dp)
-                        )
-                        Divider(
-                            color = colors.barColor,
-                            thickness = 2.dp,
-                            modifier = Modifier
-                                .weight(1f)
-                        )
-                    }
-                }
-
-                // Dynamiczny kontent przekazywany do bottom sheet
-                content()
-
-                // Slider na końcu - nie zmienia się
-                Row {
-                    MusicPlayerSlider(
-                        progress = 0.5f,
-                        onValueChange = onSliderChange  // Dynamiczna obsługa slidera
-                    )
-                }
-            }
-        },
-        sheetPeekHeight = 64.dp
-    ) {
-        // Zawartość fragmentu poza bottom sheet
-        BarWithFragmentsList()
-    }
-}
-
-@Composable
-fun MusicPlayerSlider(
-    progress: Float,
-    onValueChange: (Float) -> Unit
-) {
-    Slider(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF89c1c1))
-            .padding(horizontal = 30.dp, vertical = 10.dp),
-        value = progress,
-        onValueChange = { newValue ->
-            onValueChange(newValue)
-        },
-        valueRange = 0f..50f,
-        colors = SliderDefaults.colors(
-            thumbColor = Color.White,
-            activeTrackColor = Color(0xFF0F3F3F),
-            inactiveTrackColor = Color(0xFF4C4C4C)
-        ),
-    )
-}
-

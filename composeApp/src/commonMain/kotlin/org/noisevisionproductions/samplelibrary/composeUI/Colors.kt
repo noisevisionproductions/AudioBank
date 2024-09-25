@@ -18,4 +18,6 @@ class Colors {
 
     val hintTextColorLight = Color(0x99000000)
     val dividerLightGray = Color(0x60000000)
+
+    val propertiesColorBottomSheet = Color(0xFF456161)
 }

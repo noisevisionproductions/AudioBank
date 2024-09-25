@@ -31,6 +31,7 @@ firebaseBom = "33.3.0"
 firebaseFirestore = "25.1.0"
 firebaseStorage = "21.0.0"
 foundationLayout = "1.7.2"
+fragmentKtx = "1.8.3"
 githubTarsosdsp = "2.4"
 googleAuthLibraryCredentials = "1.27.0"
 junit = "4.13.2"
@@ -46,6 +47,7 @@ navigationRuntimeKtx = "2.8.1"
 androidx-activity-compose-v192 = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "androidxFoundation" }
 androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout", version.ref = "foundationLayout" }
+androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 androidx-ui = { module = "androidx.compose.ui:ui", version.ref = "ui" }
 auth = { module = "aws.sdk.kotlin:auth", version.ref = "auth" }

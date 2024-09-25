@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.5.2" type="baseline" client="gradle" dependencies="false" name="AGP (8.5.2)" variant="fatal" version="8.5.2">
+
+    <issue
+        id="InvalidFragmentVersionForActivityResult"
+        message="Upgrade Fragment version to at least 1.3.0."
+        errorLine1="        requestPermissionLauncher = registerForActivityResult("
+        errorLine2="                                    ^">
+        <location
+            file="src/androidMain/kotlin/org/noisevisionproductions/samplelibrary/MainActivity.kt"
+            line="31"
+            column="37"/>
+    </issue>
+
+</issues>
