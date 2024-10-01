@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -37,17 +36,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.painterResource
+import org.noisevisionproductions.samplelibrary.interfaces.getTagsFromJsonFile
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_filters
-import samplelibrary.composeapp.generated.resources.icon_properties_menu
 
 @Composable
 fun BarWithFragmentsList() {
@@ -155,8 +152,6 @@ fun RowWithSearchBar(
     var isExpanded by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
 
-    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) 100.dp else 0.dp)
-
     Row( // pasek z wyszukiwaniem dzwięków
         modifier = Modifier
             .fillMaxWidth()
@@ -176,9 +171,9 @@ fun RowWithSearchBar(
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(25.dp))
-/*
-                .background(colors.backgroundGrayColor)
-*/
+            /*
+                            .background(colors.backgroundGrayColor)
+            */
         ) {
             // wyszukiwarka
             TextField(
@@ -220,6 +215,9 @@ fun RowWithSearchBar(
                 )
         )
     }
-    // okno z filtrami
-    FiltersWindow(isExpanded, expandedHeight)
+    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) 140.dp else 0.dp)
+    val tags = getTagsFromJsonFile()
+
+    // okno z filtrami oraz tagami
+    FiltersAndTagsWindow(isExpanded, expandedHeight, tags = tags)
 }

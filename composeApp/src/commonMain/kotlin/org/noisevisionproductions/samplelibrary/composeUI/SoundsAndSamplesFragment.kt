@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,7 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.CircularProgressIndicator
@@ -30,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,11 +43,10 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import org.noisevisionproductions.samplelibrary.database.getCloudFirestore
+import org.noisevisionproductions.samplelibrary.interfaces.AzureStorageService
+import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_heart
 import samplelibrary.composeapp.generated.resources.icon_heart_filled
@@ -53,10 +57,14 @@ import samplelibrary.composeapp.generated.resources.icon_properties_menu
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DynamicListWithSamples(directoryPath: String) {
-    val cloudFirestoreWithSamples = getCloudFirestore()
+    val azureStorageService = AzureStorageService()
+    val musicPlayerService = MusicPlayerService()
 
+    var continuationToken by remember { mutableStateOf<String?>(null) }
     var fileList by remember { mutableStateOf<List<String>>(emptyList()) }
+    var filteredFileList by remember { mutableStateOf<List<String>>(emptyList()) }
     var songsList by remember { mutableStateOf<List<String>>(emptyList()) }
+    var filteredSongsList by remember { mutableStateOf<List<String>>(emptyList()) }
     var durations by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     var isPlaying by remember { mutableStateOf(false) }
@@ -68,38 +76,17 @@ fun DynamicListWithSamples(directoryPath: String) {
     val scaffoldState = rememberBottomSheetScaffoldState()
     val coroutineScope = rememberCoroutineScope()
 
-    var isLoading by remember { mutableStateOf(true) }
+    var searchQuery by remember { mutableStateOf("") }
 
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            try {
-                val namesOfSamples = cloudFirestoreWithSamples.listFilesInBucket(directoryPath)
-                fileList = namesOfSamples.map {
-                    it.substringAfterLast("/")
-                }
-
-                songsList = namesOfSamples
-
-                val fetchedDurations = songsList.map { songUrl ->
-                    async {
-                        songUrl to cloudFirestoreWithSamples.getAudioDuration(songUrl)
-                    }
-                }.awaitAll()
-
-                durations = fetchedDurations.toMap()
-            } catch (e: Exception) {
-                println("Error fetching files: ${e.message}")
-            } finally {
-                isLoading = false
-            }
-        }
-    }
+    var isLoading by remember { mutableStateOf(false) }
+    var noMoreFilesToLoad by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
     // When activity / fragment is destroyed then it stops playing sound
     DisposableEffect(Unit) {
         onDispose {
             if (isPlaying) {
-                cloudFirestoreWithSamples.stopAudio()
+                musicPlayerService.stopAudio()
             }
         }
     }
@@ -110,18 +97,17 @@ fun DynamicListWithSamples(directoryPath: String) {
                 songUrl
             )
             if (isPlaying && currentlyPlayingUrl == songUrl) {
-                cloudFirestoreWithSamples.pauseAudio()
+                musicPlayerService.pauseAudio()
                 isPlaying = false
                 currentlyPlayingUrl = null
             } else {
                 if (currentlyPlayingUrl != null && currentlyPlayingUrl != songUrl) {
-                    cloudFirestoreWithSamples.stopAudio()
+                    musicPlayerService.stopAudio()
                 }
 
-                cloudFirestoreWithSamples.playAudioFromUrl(
+                musicPlayerService.playAudioFromUrl(
                     audioUrl = songUrl, onCompletion = {
                         isPlaying = false
-                        currentlyPlayingUrl = null
                         progress = 0f
                     }, onProgressUpdate = { newProgress ->
                         progress = newProgress
@@ -153,7 +139,75 @@ fun DynamicListWithSamples(directoryPath: String) {
 
     val onSeek: (Float) -> Unit = { newProgress ->
         coroutineScope.launch {
-            cloudFirestoreWithSamples.seekTo(newProgress)
+            musicPlayerService.seekTo(newProgress)
+        }
+    }
+
+    fun applySearchFilter(query: String) {
+        if (query.isNotEmpty()) {
+            filteredFileList = fileList.filter { it.contains(query, ignoreCase = true) }
+            filteredSongsList = songsList.filter { song ->
+                val fileName = song.substringAfterLast("/")
+                fileName.contains(query, ignoreCase = true)
+            }
+        } else {
+            filteredFileList = fileList
+            filteredSongsList = songsList
+        }
+    }
+
+    val onSearchTextChanged: (String) -> Unit = { query ->
+        searchQuery = query
+        applySearchFilter(query)
+    }
+
+    fun loadMoreFiles() {
+        if (noMoreFilesToLoad || isLoading) {
+            return
+        }
+        coroutineScope.launch {
+            isLoading = true
+            try {
+                val (newFiles, newToken) = azureStorageService.listFilesInBucket(
+                    directoryPath, continuationToken ?: ""
+                )
+
+                fileList = fileList + newFiles.map { it.substringAfterLast("/") }
+                songsList = songsList + newFiles
+                continuationToken = newToken
+
+                if (continuationToken == null) {
+                    noMoreFilesToLoad = true
+                }
+
+                if (searchQuery.isEmpty()) {
+                    filteredFileList = fileList
+                    filteredSongsList = songsList
+                }
+            } catch (e: Exception) {
+                println("Error fetching files: ${e.message}")
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        loadMoreFiles()
+    }
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }
+            .collect { index ->
+                if (!isLoading && index >= fileList.size - 1 && continuationToken != null) {
+                    loadMoreFiles()
+                }
+            }
+    }
+
+    LaunchedEffect(searchQuery) {
+        if (searchQuery.isNotEmpty()) {
+            applySearchFilter(searchQuery)
         }
     }
 
@@ -168,12 +222,12 @@ fun DynamicListWithSamples(directoryPath: String) {
                 onPlayPauseClick = {
                     if (isPlaying) {
                         // Stop the audio when it's playing
-                        cloudFirestoreWithSamples.pauseAudio()
+                        musicPlayerService.pauseAudio()
                         isPlaying = false
                     } else if (currentlyPlayingUrl != null) {
                         // Resume the last played song
                         coroutineScope.launch {
-                            cloudFirestoreWithSamples.playAudioFromUrl(
+                            musicPlayerService.playAudioFromUrl(
                                 audioUrl = currentlyPlayingUrl!!,
                                 onCompletion = {
                                     isPlaying = false
@@ -183,8 +237,8 @@ fun DynamicListWithSamples(directoryPath: String) {
                                     progress = newProgress
                                 }
                             )
+                            isPlaying = true
                         }
-                        isPlaying = true
                     }
                 },
                 progress = progress,
@@ -200,12 +254,15 @@ fun DynamicListWithSamples(directoryPath: String) {
         content = {
             SampleListContent(
                 isLoading,
-                fileList = fileList,
-                songsList = songsList,
+                fileList = filteredFileList,
+                songsList = filteredSongsList,
                 durations = durations,
                 isPlaying = isPlaying,
                 currentlyPlayingUrl = currentlyPlayingUrl,
-                onPlayPauseClick = onPlayPauseClick
+                onPlayPauseClick = onPlayPauseClick,
+                onLoadMoreFiles = ::loadMoreFiles,
+                onSearchTextChanged = onSearchTextChanged,
+                listState = listState
             )
         },
         sheetElevation = 0.dp // Removing shadow that appears automatically along with bottom sheet
@@ -285,7 +342,6 @@ fun SampleListItem(
     }
 }
 
-
 @Composable
 fun SampleListHeader() {
     Row(
@@ -340,7 +396,10 @@ fun SampleListContent(
     durations: Map<String, Int>,
     isPlaying: Boolean,
     currentlyPlayingUrl: String?,
-    onPlayPauseClick: (String, String) -> Unit
+    onPlayPauseClick: (String, String) -> Unit,
+    onLoadMoreFiles: () -> Unit,
+    onSearchTextChanged: (String) -> Unit,
+    listState: LazyListState
 ) {
 
     Column(
@@ -352,9 +411,7 @@ fun SampleListContent(
         RowWithSearchBar(
             labelText = "Dźwięki",
             placeholderText = "Wyszukaj dźwięki",
-            onSearchTextChanged = { searchQuery ->
-                // TODO: Handle search functionality
-            }
+            onSearchTextChanged = onSearchTextChanged
         )
 
         Box(
@@ -372,7 +429,7 @@ fun SampleListContent(
                     thickness = 1.dp,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
-                if (isLoading) {
+                if (fileList.isEmpty() && isLoading) {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -391,10 +448,11 @@ fun SampleListContent(
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier.weight(1f)
-
+                        state = listState,
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(vertical = 16.dp)
                     ) {
-                        items(fileList.size, key = { fileList[it] }) { index ->
+                        items(fileList.size, key = { index -> fileList[index] + index }) { index ->
                             val fileUrl = fileList[index]
                             val fileName = decodeFirestoreUrl(fileUrl)
 
@@ -417,6 +475,36 @@ fun SampleListContent(
                                 thickness = 1.dp,
                                 modifier = Modifier.padding(horizontal = 16.dp)
                             )
+                        }
+
+                        if (isLoading) {
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = colors.barColor,
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                    )
+                                    Spacer(
+                                        modifier = Modifier
+                                            .width(8.dp)
+                                    )
+                                    Text(
+                                        text = "Ładowanie więcej dzwięków...",
+                                        color = colors.hintTextColorLight
+                                    )
+                                }
+                            }
+                        }
+                        item {
+                            LaunchedEffect(Unit) {
+                                onLoadMoreFiles()
+                            }
                         }
                     }
                 }

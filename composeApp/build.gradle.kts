@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
     id("com.google.gms.google-services")
+    id("kotlinx-serialization")
 }
 
 repositories {
@@ -19,6 +20,8 @@ repositories {
         url = uri("https://mvn.0110.be/releases")
     }
 }
+
+
 kotlin {
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
     compilerOptions {
@@ -51,10 +54,10 @@ kotlin {
             implementation(libs.core)
             implementation(libs.jvm)
             runtimeOnly(libs.androidx.fragment.ktx)
-
-            implementation(libs.google.auth.library.oauth2.http)
-            implementation(libs.firebase.storage)
-            implementation(project.dependencies.platform(libs.firebase.bom))
+            // Azure Storage and components for XML
+            implementation(libs.azure.storage.blob)
+            implementation(libs.woodstox.core)
+            implementation(libs.stax.api)
         }
 
         commonMain.dependencies {
@@ -66,6 +69,8 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
+            implementation(libs.kotlinx.serialization.json)
+
         }
 
         iosMain.dependencies {
@@ -86,6 +91,7 @@ android {
         vectorDrawables.useSupportLibrary = true
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
+        minSdk = 26
         versionCode = 1
         versionName = "1.0"
     }
@@ -94,6 +100,9 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/INDEX.LIST"
             excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/NOTICE.md"
+            excludes += "/META-INF/io.netty.versions.properties"
         }
     }
     buildTypes {

@@ -8,11 +8,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import com.google.firebase.FirebaseApp
 import org.noisevisionproductions.samplelibrary.composeUI.App
+import org.noisevisionproductions.samplelibrary.database.AzureStorageClient
 import org.noisevisionproductions.samplelibrary.interfaces.AppContext
 import org.noisevisionproductions.samplelibrary.interfaces.downloadAndSaveFile
-
 
 class MainActivity : ComponentActivity() {
     var pendingFileUrl: String? = null
@@ -61,6 +60,8 @@ class SampleLibrary : Application() {
         super.onCreate()
         appContext = applicationContext
         AppContext.setUp(appContext)
-        FirebaseApp.initializeApp(this)
+
+        AzureStorageClient.loadAzureConnections(this)
+        AzureStorageClient.validateConnections()
     }
 }

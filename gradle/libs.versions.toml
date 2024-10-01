@@ -1,8 +1,8 @@
 [versions]
 activityCompose = "1.9.2"
-agp = "8.5.2"
-amazonawsAwsAndroidSdkCore = "2.22.0"
-amazonawsAwsAndroidSdkS3 = "2.22.0"
+agp = "8.7.0"
+amazonawsAwsAndroidSdkCore = "2.77.0"
+amazonawsAwsAndroidSdkS3 = "2.77.0"
 android-compileSdk = "34"
 android-minSdk = "24"
 android-targetSdk = "34"
@@ -17,11 +17,13 @@ androidx-material = "1.12.0"
 androidx-test-junit = "1.2.1"
 androidxFoundation = "<latest_version>"
 auth = "0.10.5"
-awsAndroidSdkCore = "2.57.0"
+awsAndroidSdkCore = "2.77.0"
 awsAndroidSdkCoreVersion = "2.77.0"
-awsAndroidSdkS3 = "2.57.0"
-awsAndroidSdkS3Version = "2.57.0"
+awsAndroidSdkS3 = "2.77.0"
+awsAndroidSdkS3Version = "2.77.0"
 awsJavaSdk = "1.12.772"
+azureStorageBlob = "12.28.0"
+azureStorageBlobVersion = "12.11.0"
 cloudinaryAndroid = "2.5.0"
 compose-plugin = "1.6.11"
 core = "2.5"
@@ -34,14 +36,24 @@ foundationLayout = "1.7.2"
 fragmentKtx = "1.8.3"
 githubTarsosdsp = "2.4"
 googleAuthLibraryCredentials = "1.27.0"
+jakartaXmlBindApi = "4.0.2"
 junit = "4.13.2"
 kotlin = "2.0.20"
 activityKtx = "1.9.2"
+kotlinxSerializationJson = "1.6.3"
+kotlinxSerializationJsonVersion = "1.5.0"
+ktorClientCore = "2.3.12"
+ktorClientJson = "1.3.2-1.4-M2"
 material = "<latest_version>"
+mssqlJdbc = "12.8.1.jre11"
 navigationCompose = "2.8.1"
-s3 = "1.0.0"
+s3 = "1.3.37"
+staxApi = "1.0-2"
 ui = "1.7.2"
 navigationRuntimeKtx = "2.8.1"
+ktor = "2.3.12"
+coroutines = "1.9.0"
+woodstoxCore = "7.0.0"
 
 [libraries]
 androidx-activity-compose-v192 = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -59,6 +71,8 @@ aws-android-sdk-s3-v2220 = { module = "com.amazonaws:aws-android-sdk-s3", versio
 aws-android-sdk-s3-v2570 = { module = "com.amazonaws:aws-android-sdk-s3", version.ref = "awsAndroidSdkS3Version" }
 aws-java-sdk = { module = "com.amazonaws:aws-java-sdk", version.ref = "awsJavaSdk" }
 aws-kotlin-sdk-s3 = { module = "com.amazonaws:aws-kotlin-sdk-s3", version.ref = "awsJavaSdk" }
+azure-storage-blob = { module = "com.azure:azure-storage-blob", version.ref = "azureStorageBlob" }
+azure-storage-blob-v12110 = { module = "com.azure:azure-storage-blob", version.ref = "azureStorageBlobVersion" }
 cloudinary-android = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroid" }
 core = { module = "be.tarsos.dsp:core", version.ref = "core" }
 firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebaseAnalyticsKtx" }
@@ -69,6 +83,7 @@ firebase-storage = { module = "com.google.firebase:firebase-storage", version.re
 github-tarsosdsp = { module = "com.github.JorenSix:TarsosDSP", version.ref = "githubTarsosdsp" }
 google-auth-library-credentials = { module = "com.google.auth:google-auth-library-credentials", version.ref = "googleAuthLibraryCredentials" }
 google-auth-library-oauth2-http = { module = "com.google.auth:google-auth-library-oauth2-http", version.ref = "googleAuthLibraryCredentials" }
+jakarta-xml-bind-api = { module = "jakarta.xml.bind:jakarta.xml.bind-api", version.ref = "jakartaXmlBindApi" }
 jvm = { module = "be.tarsos.dsp:jvm", version.ref = "core" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
@@ -83,9 +98,23 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
+kotlinx-serialization-json-v150 = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJsonVersion" }
+ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
+ktor-client-gson = { module = "io.ktor:ktor-client-gson", version.ref = "ktor" }
+ktor-client-json = { module = "io.ktor:ktor-client-json", version.ref = "ktorClientJson" }
+ktor-client-json-jvm = { module = "io.ktor:ktor-client-json-jvm", version.ref = "ktor" }
 material = { module = "androidx.compose.material:material", version.ref = "material" }
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
+mssql-jdbc = { module = "com.microsoft.sqlserver:mssql-jdbc", version.ref = "mssqlJdbc" }
 s3 = { module = "aws.sdk.kotlin:s3", version.ref = "s3" }
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+stax-api = { module = "javax.xml.stream:stax-api", version.ref = "staxApi" }
+woodstox-core = { module = "com.fasterxml.woodstox:woodstox-core", version.ref = "woodstoxCore" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
