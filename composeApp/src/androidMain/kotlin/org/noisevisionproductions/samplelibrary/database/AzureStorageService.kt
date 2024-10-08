@@ -1,27 +1,17 @@
-package org.noisevisionproductions.samplelibrary.interfaces
+package org.noisevisionproductions.samplelibrary.database
 
-import android.media.MediaPlayer
 import com.azure.storage.blob.models.ListBlobsOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.noisevisionproductions.samplelibrary.database.AzureStorageClient
 
 actual class AzureStorageService {
 
-    actual suspend fun listFilesInBucket(bucketName: String, continuationToken: String): Pair<List<String>, String?> {
+    actual suspend fun listFilesInBucket(
+        bucketName: String,
+        continuationToken: String?
+    ): Pair<List<String>, String?> {
         return withContext(Dispatchers.IO) {
             try {
-                /* val containerClient = AzureStorageClient.containerClient
-                 val blobs = containerClient.listBlobs()
-
-                 if (!containerClient.exists()) {
-                     containerClient.create()
-                 }
-
-                 return@withContext blobs.map { blobItem ->
-                     val blobClient = containerClient.getBlobClient(blobItem.name)
-                     blobClient.blobUrl
-                 }*/
                 val containerClient = AzureStorageClient.containerClient
                 if (!containerClient.exists()) {
                     containerClient.create()

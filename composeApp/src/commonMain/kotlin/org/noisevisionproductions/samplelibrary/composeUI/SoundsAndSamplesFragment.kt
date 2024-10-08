@@ -45,7 +45,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
-import org.noisevisionproductions.samplelibrary.interfaces.AzureStorageService
+import org.noisevisionproductions.samplelibrary.FileMetadata
+import org.noisevisionproductions.samplelibrary.database.AzureStorageService
+import org.noisevisionproductions.samplelibrary.database.CosmosService
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_heart
@@ -59,10 +61,13 @@ import samplelibrary.composeapp.generated.resources.icon_properties_menu
 fun DynamicListWithSamples(directoryPath: String) {
     val azureStorageService = AzureStorageService()
     val musicPlayerService = MusicPlayerService()
+    val cosmosService = CosmosService()
 
     var continuationToken by remember { mutableStateOf<String?>(null) }
-    var fileList by remember { mutableStateOf<List<String>>(emptyList()) }
-    var filteredFileList by remember { mutableStateOf<List<String>>(emptyList()) }
+    var fileListWithMetadata by remember { mutableStateOf<List<FileMetadata>>(emptyList()) }
+    /* var fileList by remember { mutableStateOf<List<FileMetadata>>(emptyList()) }*/
+
+    var filteredFileList by remember { mutableStateOf<List<FileMetadata>>(emptyList()) }
     var songsList by remember { mutableStateOf<List<String>>(emptyList()) }
     var filteredSongsList by remember { mutableStateOf<List<String>>(emptyList()) }
     var durations by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
@@ -93,9 +98,7 @@ fun DynamicListWithSamples(directoryPath: String) {
     // Function to handle play/pause action
     val onPlayPauseClick: (String, String) -> Unit = { songUrl, fileName ->
         coroutineScope.launch {
-            currentSongIndex = songsList.indexOf(
-                songUrl
-            )
+            currentSongIndex = fileListWithMetadata.indexOfFirst { it.url == songUrl }
             if (isPlaying && currentlyPlayingUrl == songUrl) {
                 musicPlayerService.pauseAudio()
                 isPlaying = false
@@ -122,8 +125,7 @@ fun DynamicListWithSamples(directoryPath: String) {
     val playNextSongClick = {
         currentSongIndex = playNextSong(
             currentSongIndex = currentSongIndex,
-            songsList = songsList,
-            fileList = fileList,
+            fileListWithMetadata = fileListWithMetadata,
             onPlayPauseClick = onPlayPauseClick
         )
     }
@@ -131,8 +133,7 @@ fun DynamicListWithSamples(directoryPath: String) {
     val playPreviousSongClick = {
         currentSongIndex = playPreviousSong(
             currentSongIndex = currentSongIndex,
-            songsList = songsList,
-            fileList = fileList,
+            fileListWithMetadata = fileListWithMetadata,
             onPlayPauseClick = onPlayPauseClick
         )
     }
@@ -144,15 +145,12 @@ fun DynamicListWithSamples(directoryPath: String) {
     }
 
     fun applySearchFilter(query: String) {
-        if (query.isNotEmpty()) {
-            filteredFileList = fileList.filter { it.contains(query, ignoreCase = true) }
-            filteredSongsList = songsList.filter { song ->
-                val fileName = song.substringAfterLast("/")
-                fileName.contains(query, ignoreCase = true)
+        filteredFileList = if (query.isNotEmpty()) {
+            fileListWithMetadata.filter {
+                it.fileName.contains(query, ignoreCase = true)
             }
         } else {
-            filteredFileList = fileList
-            filteredSongsList = songsList
+            fileListWithMetadata
         }
     }
 
@@ -168,22 +166,34 @@ fun DynamicListWithSamples(directoryPath: String) {
         coroutineScope.launch {
             isLoading = true
             try {
-                val (newFiles, newToken) = azureStorageService.listFilesInBucket(
+                /*val (newFiles, newToken) = azureStorageService.listFilesInBucket(
                     directoryPath, continuationToken ?: ""
-                )
+                )*/
 
-                fileList = fileList + newFiles.map { it.substringAfterLast("/") }
+                /*fileList = fileList + newFiles.map { it.substringAfterLast("/") }
                 songsList = songsList + newFiles
-                continuationToken = newToken
+                continuationToken = newToken*/
+
+                val newFilesWithMetadata = cosmosService.getSynchronizedData()
+                fileListWithMetadata = fileListWithMetadata + newFilesWithMetadata
+
+                if (newFilesWithMetadata.isEmpty()) {
+                    noMoreFilesToLoad = true
+                }
 
                 if (continuationToken == null) {
                     noMoreFilesToLoad = true
                 }
 
-                if (searchQuery.isEmpty()) {
-                    filteredFileList = fileList
-                    filteredSongsList = songsList
+                filteredFileList = if (searchQuery.isEmpty()) {
+                    fileListWithMetadata
+                } else {
+                    fileListWithMetadata.filter {
+                        it.fileName.contains(searchQuery, ignoreCase = true)
+                    }
                 }
+                println("Filtered file list size: ${filteredFileList.size}")
+
             } catch (e: Exception) {
                 println("Error fetching files: ${e.message}")
             } finally {
@@ -199,7 +209,7 @@ fun DynamicListWithSamples(directoryPath: String) {
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex }
             .collect { index ->
-                if (!isLoading && index >= fileList.size - 1 && continuationToken != null) {
+                if (!isLoading && index >= fileListWithMetadata.size - 1 && continuationToken != null) {
                     loadMoreFiles()
                 }
             }
@@ -255,7 +265,6 @@ fun DynamicListWithSamples(directoryPath: String) {
             SampleListContent(
                 isLoading,
                 fileList = filteredFileList,
-                songsList = filteredSongsList,
                 durations = durations,
                 isPlaying = isPlaying,
                 currentlyPlayingUrl = currentlyPlayingUrl,
@@ -267,79 +276,6 @@ fun DynamicListWithSamples(directoryPath: String) {
         },
         sheetElevation = 0.dp // Removing shadow that appears automatically along with bottom sheet
     )
-}
-
-@Composable
-fun SampleListItem(
-    fileName: String,
-    songUrl: String,
-    durationSeconds: Int,
-    isPlaying: Boolean,
-    currentlyPlayingUrl: String?,
-    onPlayPauseClick: (String, String) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        PlayPauseButton(
-            isPlaying = (isPlaying && currentlyPlayingUrl == songUrl),
-            currentlyPlayingUrl = currentlyPlayingUrl,
-            songUrl = songUrl,
-            onPlayPauseClick = { onPlayPauseClick(songUrl, fileName) }
-        )
-        ScrollingText(
-            fileName = fileName,
-            modifier = Modifier.weight(2f)
-        )
-        Text(
-            text = displayFormattedDuration(durationSeconds),
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "ton",
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "bpm",
-            modifier = Modifier.weight(1f)
-        )
-
-        var isFavorite by remember { mutableStateOf(false) }
-        Image(
-            painterResource(if (isFavorite) Res.drawable.icon_heart_filled else Res.drawable.icon_heart),
-            contentDescription = if (isFavorite) "Unfavorite" else "Favorite",
-            modifier = Modifier.weight(1f)
-                .size(40.dp)
-                .clickable {
-                    isFavorite = !isFavorite
-                }
-        )
-
-        var expanded by remember { mutableStateOf(false) }
-
-        Image(
-            painterResource(Res.drawable.icon_properties_menu),
-            contentDescription = "Properties menu",
-            modifier = Modifier
-                .weight(1f)
-                .size(40.dp)
-                .clickable { expanded = true }
-        )
-        PropertiesMenu(
-            fileUrl = songUrl,
-            fileName = fileName,
-            expanded = expanded,
-            onDismiss = { expanded = false },
-            onOptionSelected = { option ->
-                println("Selected option: $option")
-            },
-            alignRight = true
-        )
-    }
 }
 
 @Composable
@@ -389,10 +325,82 @@ fun SampleListHeader() {
 }
 
 @Composable
+fun SampleListItem(
+    fileName: String,
+    songUrl: String,
+    duration: String,
+    isPlaying: Boolean,
+    currentlyPlayingUrl: String?,
+    onPlayPauseClick: (String, String) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        PlayPauseButton(
+            isPlaying = (isPlaying && currentlyPlayingUrl == songUrl),
+            currentlyPlayingUrl = currentlyPlayingUrl,
+            songUrl = songUrl,
+            onPlayPauseClick = { onPlayPauseClick(songUrl, fileName) }
+        )
+        ScrollingText(
+            fileName = fileName,
+            modifier = Modifier.weight(2f)
+        )
+        Text(
+            text = duration,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "ton",
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "bpm",
+            modifier = Modifier.weight(1f)
+        )
+
+        var isFavorite by remember { mutableStateOf(false) }
+        Image(
+            painterResource(if (isFavorite) Res.drawable.icon_heart_filled else Res.drawable.icon_heart),
+            contentDescription = if (isFavorite) "Unfavorite" else "Favorite",
+            modifier = Modifier.weight(1f)
+                .size(40.dp)
+                .clickable {
+                    isFavorite = !isFavorite
+                }
+        )
+
+        var expanded by remember { mutableStateOf(false) }
+
+        Image(
+            painterResource(Res.drawable.icon_properties_menu),
+            contentDescription = "Properties menu",
+            modifier = Modifier
+                .weight(1f)
+                .size(40.dp)
+                .clickable { expanded = true }
+        )
+        PropertiesMenu(
+            fileUrl = songUrl,
+            fileName = fileName,
+            expanded = expanded,
+            onDismiss = { expanded = false },
+            onOptionSelected = { option ->
+                println("Selected option: $option")
+            },
+            alignRight = true
+        )
+    }
+}
+
+@Composable
 fun SampleListContent(
     isLoading: Boolean,
-    fileList: List<String>,
-    songsList: List<String>,
+    fileList: List<FileMetadata>,
     durations: Map<String, Int>,
     isPlaying: Boolean,
     currentlyPlayingUrl: String?,
@@ -452,18 +460,22 @@ fun SampleListContent(
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues(vertical = 16.dp)
                     ) {
-                        items(fileList.size, key = { index -> fileList[index] + index }) { index ->
-                            val fileUrl = fileList[index]
-                            val fileName = decodeFirestoreUrl(fileUrl)
+                        items(
+                            fileList.size,
+                            key = { index -> fileList[index].url + index }) { index ->
+                            /*val fileUrl = fileList[index]
+                            val fileName = decodeFirestoreUrl(fileUrl)*/
 
-                            val songUrl = songsList.getOrNull(index) ?: ""
-                            val durationSeconds = durations[songUrl] ?: 0
+                            val fileMetadata = fileList[index]
+                            val fileName = decodeUrl(fileMetadata.url)
+                            val songUrl = fileMetadata.url
+                            val duration = fileMetadata.duration
 
                             if (songUrl.isNotEmpty()) {
                                 SampleListItem(
                                     fileName = fileName,
                                     songUrl = songUrl,
-                                    durationSeconds = durationSeconds,
+                                    duration = duration,
                                     isPlaying = (isPlaying && currentlyPlayingUrl == songUrl),
                                     currentlyPlayingUrl = currentlyPlayingUrl,
                                     onPlayPauseClick = onPlayPauseClick
@@ -533,15 +545,14 @@ fun PlayPauseButton(
 
 fun playNextSong(
     currentSongIndex: Int,
-    songsList: List<String>,
-    fileList: List<String>,
+    fileListWithMetadata: List<FileMetadata>,
     onPlayPauseClick: (String, String) -> Unit
 ): Int {
-    if (songsList.isNotEmpty()) {
-        val nextIndex = (currentSongIndex + 1) % songsList.size
-        val nextSongUrl = songsList[nextIndex]
-        val nextFileName = decodeFirestoreUrl(fileList[nextIndex])
-        onPlayPauseClick(nextSongUrl, nextFileName)
+    if (fileListWithMetadata.isNotEmpty()) {
+        val nextIndex = (currentSongIndex + 1) % fileListWithMetadata.size
+        val nextSong = fileListWithMetadata[nextIndex]
+        /*val nextFileName = decodeFirestoreUrl(fileList[nextIndex])*/
+        onPlayPauseClick(nextSong.url, nextSong.fileName)
         return nextIndex
     }
     return currentSongIndex
@@ -549,15 +560,17 @@ fun playNextSong(
 
 fun playPreviousSong(
     currentSongIndex: Int,
-    songsList: List<String>,
-    fileList: List<String>,
+    fileListWithMetadata: List<FileMetadata>,
     onPlayPauseClick: (String, String) -> Unit
 ): Int {
-    if (songsList.isNotEmpty()) {
-        val prevIndex = if (currentSongIndex - 1 < 0) songsList.lastIndex else currentSongIndex - 1
-        val prevSongUrl = songsList[prevIndex]
-        val prevFileName = decodeFirestoreUrl(fileList[prevIndex])
-        onPlayPauseClick(prevSongUrl, prevFileName)
+    if (fileListWithMetadata.isNotEmpty()) {
+        val prevIndex =
+            if (currentSongIndex - 1 < 0) fileListWithMetadata.lastIndex else currentSongIndex - 1
+        val prevSong = fileListWithMetadata[prevIndex]
+        /*
+                val prevFileName = decodeFirestoreUrl(fileList[prevIndex])
+        */
+        onPlayPauseClick(prevSong.url, prevSong.fileName)
         return prevIndex
     }
     return currentSongIndex

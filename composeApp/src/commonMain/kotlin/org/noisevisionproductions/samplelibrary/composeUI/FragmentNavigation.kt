@@ -99,7 +99,7 @@ fun BarWithFragmentsList() {
                 }
             }
             when (currentScreen) {
-                FragmentsTabs.Tab1 -> DynamicListWithSamples("samples/rimshots")
+                FragmentsTabs.Tab1 -> DynamicListWithSamples("samples")
                 FragmentsTabs.Tab2 -> DynamicListWithSamples("acapella")
                 FragmentsTabs.Tab3 -> DynamicListWithSamples("acapella")
                 FragmentsTabs.Tab4 -> DynamicListWithSamples("acapella")
