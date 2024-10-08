@@ -38,39 +38,29 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.noisevisionproductions.samplelibrary.FileMetadata
-import org.noisevisionproductions.samplelibrary.database.AzureStorageService
 import org.noisevisionproductions.samplelibrary.database.CosmosService
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_heart
 import samplelibrary.composeapp.generated.resources.icon_heart_filled
-import samplelibrary.composeapp.generated.resources.icon_pause
-import samplelibrary.composeapp.generated.resources.icon_play
 import samplelibrary.composeapp.generated.resources.icon_properties_menu
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DynamicListWithSamples(directoryPath: String) {
-    val azureStorageService = AzureStorageService()
     val musicPlayerService = MusicPlayerService()
     val cosmosService = CosmosService()
 
-    var continuationToken by remember { mutableStateOf<String?>(null) }
+    val continuationToken by remember { mutableStateOf<String?>(null) }
     var fileListWithMetadata by remember { mutableStateOf<List<FileMetadata>>(emptyList()) }
-    /* var fileList by remember { mutableStateOf<List<FileMetadata>>(emptyList()) }*/
 
     var filteredFileList by remember { mutableStateOf<List<FileMetadata>>(emptyList()) }
-    var songsList by remember { mutableStateOf<List<String>>(emptyList()) }
-    var filteredSongsList by remember { mutableStateOf<List<String>>(emptyList()) }
-    var durations by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     var isPlaying by remember { mutableStateOf(false) }
     var currentlyPlayingUrl by remember { mutableStateOf<String?>(null) }
@@ -125,7 +115,7 @@ fun DynamicListWithSamples(directoryPath: String) {
     val playNextSongClick = {
         currentSongIndex = playNextSong(
             currentSongIndex = currentSongIndex,
-            fileListWithMetadata = fileListWithMetadata,
+            fileListWithMetadata = filteredFileList,
             onPlayPauseClick = onPlayPauseClick
         )
     }
@@ -133,7 +123,7 @@ fun DynamicListWithSamples(directoryPath: String) {
     val playPreviousSongClick = {
         currentSongIndex = playPreviousSong(
             currentSongIndex = currentSongIndex,
-            fileListWithMetadata = fileListWithMetadata,
+            fileListWithMetadata = filteredFileList,
             onPlayPauseClick = onPlayPauseClick
         )
     }
@@ -145,9 +135,11 @@ fun DynamicListWithSamples(directoryPath: String) {
     }
 
     fun applySearchFilter(query: String) {
-        filteredFileList = if (query.isNotEmpty()) {
+        val trimmedQuery = query.trim()
+        filteredFileList = if (trimmedQuery.isNotEmpty()) {
             fileListWithMetadata.filter {
-                it.fileName.contains(query, ignoreCase = true)
+                val decodedFileName = decodeFileName(it.fileName.trim())
+                decodedFileName.contains(trimmedQuery, ignoreCase = true)
             }
         } else {
             fileListWithMetadata
@@ -166,16 +158,12 @@ fun DynamicListWithSamples(directoryPath: String) {
         coroutineScope.launch {
             isLoading = true
             try {
-                /*val (newFiles, newToken) = azureStorageService.listFilesInBucket(
-                    directoryPath, continuationToken ?: ""
-                )*/
-
-                /*fileList = fileList + newFiles.map { it.substringAfterLast("/") }
-                songsList = songsList + newFiles
-                continuationToken = newToken*/
-
                 val newFilesWithMetadata = cosmosService.getSynchronizedData()
                 fileListWithMetadata = fileListWithMetadata + newFilesWithMetadata
+
+                fileListWithMetadata = fileListWithMetadata.distinctBy {
+                    decodeFileName(it.fileName.trim())
+                }
 
                 if (newFilesWithMetadata.isEmpty()) {
                     noMoreFilesToLoad = true
@@ -265,7 +253,6 @@ fun DynamicListWithSamples(directoryPath: String) {
             SampleListContent(
                 isLoading,
                 fileList = filteredFileList,
-                durations = durations,
                 isPlaying = isPlaying,
                 currentlyPlayingUrl = currentlyPlayingUrl,
                 onPlayPauseClick = onPlayPauseClick,
@@ -294,7 +281,7 @@ fun SampleListHeader() {
             text = "Nazwa",
             fontSize = 15.sp,
             color = colors.hintTextColorLight,
-            modifier = Modifier.weight(2f),
+            modifier = Modifier.weight(3f),
             textAlign = TextAlign.Center
         )
         Text(
@@ -303,18 +290,18 @@ fun SampleListHeader() {
             color = colors.hintTextColorLight,
             modifier = Modifier.weight(1f)
         )
-        Text(
-            text = "Ton",
-            fontSize = 15.sp,
-            color = colors.hintTextColorLight,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "BPM",
-            fontSize = 15.sp,
-            color = colors.hintTextColorLight,
-            modifier = Modifier.weight(1f)
-        )
+        /* Text(
+             text = "Ton",
+             fontSize = 15.sp,
+             color = colors.hintTextColorLight,
+             modifier = Modifier.weight(1f)
+         )
+         Text(
+             text = "BPM",
+             fontSize = 15.sp,
+             color = colors.hintTextColorLight,
+             modifier = Modifier.weight(1f)
+         )*/
         Box(
             modifier = Modifier.weight(1f)
         ) {}
@@ -348,20 +335,20 @@ fun SampleListItem(
         )
         ScrollingText(
             fileName = fileName,
-            modifier = Modifier.weight(2f)
+            modifier = Modifier.weight(3f)
         )
         Text(
             text = duration,
             modifier = Modifier.weight(1f)
         )
-        Text(
-            text = "ton",
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = "bpm",
-            modifier = Modifier.weight(1f)
-        )
+        /*   Text(
+               text = "ton",
+               modifier = Modifier.weight(1f)
+           )
+           Text(
+               text = "bpm",
+               modifier = Modifier.weight(1f)
+           )*/
 
         var isFavorite by remember { mutableStateOf(false) }
         Image(
@@ -401,7 +388,6 @@ fun SampleListItem(
 fun SampleListContent(
     isLoading: Boolean,
     fileList: List<FileMetadata>,
-    durations: Map<String, Int>,
     isPlaying: Boolean,
     currentlyPlayingUrl: String?,
     onPlayPauseClick: (String, String) -> Unit,
@@ -462,10 +448,8 @@ fun SampleListContent(
                     ) {
                         items(
                             fileList.size,
-                            key = { index -> fileList[index].url + index }) { index ->
-                            /*val fileUrl = fileList[index]
-                            val fileName = decodeFirestoreUrl(fileUrl)*/
-
+                            key = { index -> fileList[index].url + index }
+                        ) { index ->
                             val fileMetadata = fileList[index]
                             val fileName = decodeUrl(fileMetadata.url)
                             val songUrl = fileMetadata.url
@@ -524,56 +508,3 @@ fun SampleListContent(
         }
     }
 }
-
-@Composable
-fun PlayPauseButton(
-    isPlaying: Boolean,
-    currentlyPlayingUrl: String?,
-    songUrl: String,
-    onPlayPauseClick: () -> Unit,
-    iconColor: Color? = null
-) {
-    Image(
-        painterResource(if (isPlaying && currentlyPlayingUrl == songUrl) Res.drawable.icon_pause else Res.drawable.icon_play),
-        contentDescription = if (isPlaying && currentlyPlayingUrl == songUrl) "Pause" else "Play",
-        modifier = Modifier
-            .clickable { onPlayPauseClick() }
-            .size(40.dp),
-        colorFilter = iconColor?.let { ColorFilter.tint(it) }
-    )
-}
-
-fun playNextSong(
-    currentSongIndex: Int,
-    fileListWithMetadata: List<FileMetadata>,
-    onPlayPauseClick: (String, String) -> Unit
-): Int {
-    if (fileListWithMetadata.isNotEmpty()) {
-        val nextIndex = (currentSongIndex + 1) % fileListWithMetadata.size
-        val nextSong = fileListWithMetadata[nextIndex]
-        /*val nextFileName = decodeFirestoreUrl(fileList[nextIndex])*/
-        onPlayPauseClick(nextSong.url, nextSong.fileName)
-        return nextIndex
-    }
-    return currentSongIndex
-}
-
-fun playPreviousSong(
-    currentSongIndex: Int,
-    fileListWithMetadata: List<FileMetadata>,
-    onPlayPauseClick: (String, String) -> Unit
-): Int {
-    if (fileListWithMetadata.isNotEmpty()) {
-        val prevIndex =
-            if (currentSongIndex - 1 < 0) fileListWithMetadata.lastIndex else currentSongIndex - 1
-        val prevSong = fileListWithMetadata[prevIndex]
-        /*
-                val prevFileName = decodeFirestoreUrl(fileList[prevIndex])
-        */
-        onPlayPauseClick(prevSong.url, prevSong.fileName)
-        return prevIndex
-    }
-    return currentSongIndex
-}
-
-

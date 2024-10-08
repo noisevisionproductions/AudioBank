@@ -2,6 +2,7 @@ package org.noisevisionproductions.samplelibrary.database
 
 import android.content.Context
 import org.noisevisionproductions.samplelibrary.FileMetadata
+import org.noisevisionproductions.samplelibrary.composeUI.decodeUrlForSynchronization
 import org.noisevisionproductions.samplelibrary.interfaces.AppContext
 import org.noisevisionproductions.samplelibrary.restRetrofit.fetchDocumentsFromCosmosDB
 
@@ -58,8 +59,6 @@ actual class CosmosService {
                 null
             }
         }
-
-
         return filesWithMetadata
     }
 }
@@ -71,10 +70,3 @@ private fun normalizeBlobUrl(blobUrl: String): String {
     )
 }
 
-private fun decodeUrlForSynchronization(url: String): String {
-    return url
-        .replace("%20", " ")
-        .replace("%23", "#")
-        .replace("%2F", "/")
-        .replace("\\", "")
-}
