@@ -20,9 +20,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -44,7 +47,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 
 @Composable
 fun FiltersAndTagsWindow(isExpanded: Boolean, expandedHeight: Dp, tags: List<String>) {
@@ -60,7 +63,7 @@ fun FiltersAndTagsWindow(isExpanded: Boolean, expandedHeight: Dp, tags: List<Str
             }
     ) {
         if (isExpanded) {
-            Column (
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
@@ -77,7 +80,7 @@ fun FiltersAndTagsWindow(isExpanded: Boolean, expandedHeight: Dp, tags: List<Str
                     DropDownMenuWithItems("BPM")
                 }
 
-                LazyRow (
+                LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
@@ -95,7 +98,7 @@ fun FiltersAndTagsWindow(isExpanded: Boolean, expandedHeight: Dp, tags: List<Str
 
 @Composable
 fun TagItem(tag: String) {
-    Box (
+    Box(
         modifier = Modifier
             .background(Color.LightGray, shape = RoundedCornerShape(16.dp))
             .padding(8.dp)
@@ -154,12 +157,12 @@ fun ScrollingText(fileName: String, modifier: Modifier = Modifier) {
 
     LaunchedEffect(fileName, textWidth, containerWidth) {
         if (textWidth > containerWidth) {
-            offsetX.snapTo(containerWidth)
+            offsetX.snapTo(0f)
             offsetX.animateTo(
-                targetValue = -textWidth,
+                targetValue = containerWidth - textWidth,
                 animationSpec = infiniteRepeatable(
                     animation = tween(
-                        durationMillis = (textWidth * 25).toInt(),
+                        durationMillis = (textWidth * 15).toInt(),
                         easing = LinearEasing
                     ),
                     repeatMode = RepeatMode.Restart
@@ -199,6 +202,46 @@ fun ScrollingText(fileName: String, modifier: Modifier = Modifier) {
             )
         }
     }
+}
+
+@Composable
+fun ShowDialogAlert(onConfirm: () -> Unit, onDismiss: () -> Unit, contentQuestion: String) {
+    AlertDialog(
+        onDismissRequest = { onDismiss() },
+        title = { Text(text = "Anulować zmiany?") },
+        text = { Text(text = contentQuestion) },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm() },
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
+            ) {
+                Text(
+                    "Tak",
+                    style = LocalTextStyle.current.copy(
+                        fontSize = 16.sp,
+                        color = colors.backgroundWhiteColor
+                    )
+                )
+            }
+        },
+        dismissButton = {
+            Button(
+                onClick = { onDismiss() },
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(backgroundColor = colors.primaryBackgroundColor)
+            ) {
+                Text(
+                    "Nie",
+                    style = LocalTextStyle.current.copy(
+                        fontSize = 16.sp,
+                        color = colors.backgroundWhiteColor
+                    )
+                )
+            }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
 }
 
 @Composable

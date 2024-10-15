@@ -7,3 +7,10 @@ actual fun downloadAndSaveFile(
     onCompletion: () -> Unit
 ) {
 }
+
+actual fun showPostCreatedMessage(message: String) {
+}
+
+actual fun getCurrentTimestamp(): String {
+    TODO("Not yet implemented")
+}

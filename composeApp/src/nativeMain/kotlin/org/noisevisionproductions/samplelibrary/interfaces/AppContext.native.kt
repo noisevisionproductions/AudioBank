@@ -7,7 +7,3 @@ actual object AppContext {
         return Unit
     }
 }
-
-actual fun getActivity(): Any? {
-    TODO("Not yet implemented")
-}

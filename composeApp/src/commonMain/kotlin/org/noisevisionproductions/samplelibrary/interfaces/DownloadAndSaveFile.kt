@@ -6,3 +6,7 @@ expect fun downloadAndSaveFile(
     fileName: String,
     onCompletion: () -> Unit
 )
+
+expect fun showPostCreatedMessage(message: String)
+
+expect fun getCurrentTimestamp(): String

@@ -2,13 +2,15 @@ package org.noisevisionproductions.samplelibrary
 
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import org.noisevisionproductions.samplelibrary.composeUI.App
+import com.google.firebase.FirebaseApp
+import org.noisevisionproductions.samplelibrary.auth.AuthService
+import org.noisevisionproductions.samplelibrary.composeUI.screens.LoginActivity
 import org.noisevisionproductions.samplelibrary.database.AzureStorageClient
 import org.noisevisionproductions.samplelibrary.interfaces.AppContext
 import org.noisevisionproductions.samplelibrary.interfaces.downloadAndSaveFile
@@ -20,10 +22,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            App()
-        }
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+        finish()
         setupPermissionLauncher()
+
     }
 
     private fun setupPermissionLauncher() {
@@ -51,6 +54,8 @@ class MainActivity : ComponentActivity() {
 }
 
 class SampleLibrary : Application() {
+    private lateinit var authService: AuthService
+
     companion object {
         lateinit var appContext: Context
             private set
@@ -60,8 +65,11 @@ class SampleLibrary : Application() {
         super.onCreate()
         appContext = applicationContext
         AppContext.setUp(appContext)
+        FirebaseApp.initializeApp(this)
 
         AzureStorageClient.loadAzureConnections(this)
         AzureStorageClient.validateConnections()
+
+        authService = AuthService()
     }
 }

@@ -3,7 +3,7 @@ package org.noisevisionproductions.samplelibrary.database
 import android.content.Context
 import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.BlobServiceClientBuilder
-import java.util.Properties
+import org.noisevisionproductions.samplelibrary.utils.ConfigManager
 
 object AzureStorageClient {
     private lateinit var connectionString: String
@@ -18,18 +18,17 @@ object AzureStorageClient {
 
     fun loadAzureConnections(context: Context) {
         try {
-            val assetManager = context.assets
-            val inputStream = assetManager.open("key.properties")
-            val properties = Properties().apply {
-                load(inputStream)
-            }
+            val configManager = ConfigManager(context)
 
-            connectionString = properties.getProperty("AZURE_CONNECTION_STRING")
-            containerName = properties.getProperty("AZURE_CONTAINER_NAME")
+            connectionString = configManager.getAzureConnectionString()
+                ?: throw RuntimeException("AZURE_CONNECTION_STRING is missing in key.properties")
+
+            containerName = configManager.getAzureContainerName()
+                ?: throw RuntimeException("AZURE_CONTAINER_NAME is missing in key.properties")
 
         } catch (e: Exception) {
             e.printStackTrace()
-            throw RuntimeException("Could not load properties file: ${e.message}")
+            throw RuntimeException("Could not load properties from ConfigManager: ${e.message}")
         }
     }
 

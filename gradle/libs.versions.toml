@@ -24,39 +24,49 @@ awsAndroidSdkS3Version = "2.77.0"
 awsJavaSdk = "1.12.772"
 azureCosmos = "4.63.3"
 azureStorageBlob = "12.28.0"
-azureStorageBlobVersion = "12.11.0"
+azureStorageBlobVersion = "12.28.0"
 cloudinaryAndroid = "2.5.0"
 compose-plugin = "1.6.11"
 converterGson = "2.11.0"
 core = "2.5"
-firebaseAnalyticsKtx = "22.1.0"
+firebaseAnalyticsKtx = "22.1.2"
 firebaseAuthKtx = "23.0.0"
-firebaseBom = "33.3.0"
+firebaseBom = "33.4.0"
 firebaseFirestore = "25.1.0"
-firebaseStorage = "21.0.0"
-foundationLayout = "1.7.2"
-fragmentKtx = "1.8.3"
-githubTarsosdsp = "2.4"
+firebaseStorage = "21.0.1"
+foundationLayout = "1.7.3"
+fragmentKtx = "1.8.4"
 googleAuthLibraryCredentials = "1.27.0"
 jakartaXmlBindApi = "4.0.2"
 junit = "4.13.2"
+kotestFrameworkEngine = "5.5.5"
 kotlin = "2.0.20"
 activityKtx = "1.9.2"
-kotlinxSerializationJson = "1.6.3"
-kotlinxSerializationJsonVersion = "1.5.0"
+kotlinxSerializationJson = "1.7.3"
+kotlinxSerializationJsonVersion = "1.7.3"
 ktorClientCore = "2.3.12"
-ktorClientJson = "1.3.2-1.4-M2"
+ktorClientJson = "2.3.12"
+logbackClassic = "1.5.9"
 loggingInterceptor = "4.12.0"
 material = "<latest_version>"
+mockk = "1.12.5"
+mockkCommon = "1.13.0"
+mockkVersion = "1.13.1"
+mongodbDriverSync = "5.2.0"
+msal = "5.7.0"
 mssqlJdbc = "12.8.1.jre11"
-navigationCompose = "2.8.1"
+navigationCompose = "2.8.2"
 s3 = "1.3.37"
+slf4jSimple = "2.1.0-alpha1"
 staxApi = "1.0-2"
-ui = "1.7.2"
-navigationRuntimeKtx = "2.8.1"
+ui = "1.7.3"
+navigationRuntimeKtx = "2.8.2"
 ktor = "2.3.12"
 coroutines = "1.9.0"
 woodstoxCore = "7.0.0"
+assertk = "0.28.1"
+coreKtx = "1.6.1"
+composeTest = "1.7.3"
 
 [libraries]
 androidx-activity-compose-v192 = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -77,19 +87,21 @@ aws-kotlin-sdk-s3 = { module = "com.amazonaws:aws-kotlin-sdk-s3", version.ref = 
 azure-cosmos = { module = "com.azure:azure-cosmos", version.ref = "azureCosmos" }
 azure-storage-blob = { module = "com.azure:azure-storage-blob", version.ref = "azureStorageBlob" }
 azure-storage-blob-v12110 = { module = "com.azure:azure-storage-blob", version.ref = "azureStorageBlobVersion" }
+bson-kotlin = { module = "org.mongodb:bson-kotlin", version.ref = "mongodbDriverSync" }
 cloudinary-android = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroid" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
-core = { module = "be.tarsos.dsp:core", version.ref = "core" }
 firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebaseAnalyticsKtx" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-firestore = { module = "com.google.firebase:firebase-firestore", version.ref = "firebaseFirestore" }
+firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx", version.ref = "firebaseFirestore" }
 firebase-storage = { module = "com.google.firebase:firebase-storage", version.ref = "firebaseStorage" }
-github-tarsosdsp = { module = "com.github.JorenSix:TarsosDSP", version.ref = "githubTarsosdsp" }
 google-auth-library-credentials = { module = "com.google.auth:google-auth-library-credentials", version.ref = "googleAuthLibraryCredentials" }
 google-auth-library-oauth2-http = { module = "com.google.auth:google-auth-library-oauth2-http", version.ref = "googleAuthLibraryCredentials" }
 jakarta-xml-bind-api = { module = "jakarta.xml.bind:jakarta.xml.bind-api", version.ref = "jakartaXmlBindApi" }
-jvm = { module = "be.tarsos.dsp:jvm", version.ref = "core" }
+kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotestFrameworkEngine" }
+kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotestFrameworkEngine" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotestFrameworkEngine" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -103,15 +115,25 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 androidx-activity-ktx = { group = "androidx.activity", name = "activity-ktx", version.ref = "activityKtx" }
+kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 kotlinx-serialization-json-v150 = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJsonVersion" }
 ktor-client-apache = { module = "io.ktor:ktor-client-apache", version.ref = "ktor" }
 ktor-client-gson = { module = "io.ktor:ktor-client-gson", version.ref = "ktor" }
 ktor-client-json = { module = "io.ktor:ktor-client-json", version.ref = "ktorClientJson" }
 ktor-client-json-jvm = { module = "io.ktor:ktor-client-json-jvm", version.ref = "ktor" }
+logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logbackClassic" }
 logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "loggingInterceptor" }
 material = { module = "androidx.compose.material:material", version.ref = "material" }
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+mockk-android = { module = "io.mockk:mockk-android", version.ref = "mockkCommon" }
+mockk-common = { module = "io.mockk:mockk-common", version.ref = "mockkCommon" }
+mockk-v1131 = { module = "io.mockk:mockk", version.ref = "mockkVersion" }
+mongodb-driver-kotlin-coroutine = { module = "org.mongodb:mongodb-driver-kotlin-coroutine", version.ref = "mongodbDriverSync" }
+mongodb-driver-reactivestreams = { module = "org.mongodb:mongodb-driver-reactivestreams", version.ref = "mongodbDriverSync" }
+mongodb-driver-sync = { module = "org.mongodb:mongodb-driver-sync", version.ref = "mongodbDriverSync" }
+msal = { module = "com.microsoft.identity.client:msal", version.ref = "msal" }
 mssql-jdbc = { module = "com.microsoft.sqlserver:mssql-jdbc", version.ref = "mssqlJdbc" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "converterGson" }
 s3 = { module = "aws.sdk.kotlin:s3", version.ref = "s3" }
@@ -120,8 +142,13 @@ ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "kto
 ktor-client-darwin = { module = "io.ktor:ktor-client-darwin", version.ref = "ktor" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4jSimple" }
 stax-api = { module = "javax.xml.stream:stax-api", version.ref = "staxApi" }
 woodstox-core = { module = "com.fasterxml.woodstox:woodstox-core", version.ref = "woodstoxCore" }
+assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assertk" }
+compose-ui-test-junit4-android = { module = "androidx.compose.ui:ui-test-junit4-android", version.ref = "composeTest" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "composeTest" }
+core-ktx = { group = "androidx.test", name = "core-ktx", version.ref = "coreKtx" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

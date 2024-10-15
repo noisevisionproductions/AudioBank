@@ -10,6 +10,9 @@ import android.os.Environment
 import android.widget.Toast
 import androidx.core.content.ContextCompat
 import org.noisevisionproductions.samplelibrary.MainActivity
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 
 actual fun downloadAndSaveFile(
@@ -76,3 +79,12 @@ fun checkAndRequestStoragePermission(
     }
 }
 
+actual fun showPostCreatedMessage(message: String) {
+    val context = AppContext.get() as Context
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+}
+
+actual fun getCurrentTimestamp(): String {
+    val sdf = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
+    return sdf.format(Date())
+}

@@ -1,15 +1,22 @@
 package org.noisevisionproductions.samplelibrary.composeUI
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.Slider
+import androidx.compose.material.SliderDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
-import org.noisevisionproductions.samplelibrary.FileMetadata
+import org.noisevisionproductions.samplelibrary.utils.FileMetadata
+import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
+import org.noisevisionproductions.samplelibrary.utils.decodeFileName
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_pause
 import samplelibrary.composeapp.generated.resources.icon_play
@@ -35,12 +42,13 @@ fun PlayPauseButton(
 fun playNextSong(
     currentSongIndex: Int,
     fileListWithMetadata: List<FileMetadata>,
-    onPlayPauseClick: (String, String) -> Unit
+    onPlayPauseClick: (String, String) -> Unit,
 ): Int {
     if (fileListWithMetadata.isNotEmpty()) {
         val nextIndex = (currentSongIndex + 1) % fileListWithMetadata.size
         val nextSong = fileListWithMetadata[nextIndex]
-        onPlayPauseClick(nextSong.url, nextSong.fileName)
+        val decodedFileName = decodeFileName(nextSong.fileName)
+        onPlayPauseClick(nextSong.url, decodedFileName)
         return nextIndex
     }
     return currentSongIndex
@@ -55,8 +63,37 @@ fun playPreviousSong(
         val prevIndex =
             if (currentSongIndex - 1 < 0) fileListWithMetadata.lastIndex else currentSongIndex - 1
         val prevSong = fileListWithMetadata[prevIndex]
-        onPlayPauseClick(prevSong.url, prevSong.fileName)
+        val decodedFileName = decodeFileName(prevSong.fileName)
+        onPlayPauseClick(prevSong.url, decodedFileName)
         return prevIndex
     }
     return currentSongIndex
 }
+
+@Composable
+fun MusicPlayerSlider(
+    progress: Float,
+    onValueChange: (Float) -> Unit,
+    onSeek: (Float) -> Unit
+) {
+    Slider(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.primaryBackgroundColor)
+            .padding(horizontal = 50.dp, vertical = 20.dp),
+        value = progress,
+        onValueChange = { newValue ->
+            onValueChange(newValue)
+        },
+        onValueChangeFinished = {
+            onSeek(progress)
+        },
+        valueRange = 0f..1f,
+        colors = SliderDefaults.colors(
+            thumbColor = colors.backgroundWhiteColor,
+            activeTrackColor = Color(0xFF0F3F3F),
+            inactiveTrackColor = Color(0xFF4C4C4C)
+        ),
+    )
+}
+

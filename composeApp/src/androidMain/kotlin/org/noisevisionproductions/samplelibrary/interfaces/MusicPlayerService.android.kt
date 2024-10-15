@@ -9,9 +9,12 @@ import kotlinx.coroutines.launch
 
 actual class MusicPlayerService {
     private var mediaPlayer: MediaPlayer? = null
+    private var isPreparing = false
+    private var isPausedRequested = false
 
     actual suspend fun playAudioFromUrl(
         audioUrl: String,
+        currentlyPlayingUrl: String?,
         onCompletion: () -> Unit,
         onProgressUpdate: (Float) -> Unit
     ) {
@@ -20,56 +23,66 @@ actual class MusicPlayerService {
             return
         }
         try {
-            if (mediaPlayer != null && mediaPlayer?.isPlaying == false) {
+
+            if (mediaPlayer != null && currentlyPlayingUrl == audioUrl && mediaPlayer?.isPlaying == false) {
                 mediaPlayer?.start()
+                startProgressTracking(onProgressUpdate)
+                return
+            }
 
-                val duration = mediaPlayer?.duration ?: 0
-                val coroutineScope = CoroutineScope(Dispatchers.Main)
+            mediaPlayer?.release()
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(audioUrl)
+                isPreparing = true
+                prepareAsync()
 
-                coroutineScope.launch {
-                    while (mediaPlayer?.isPlaying == true) {
-                        val currentPosition = mediaPlayer?.currentPosition ?: 0
-                        val progress = currentPosition / duration.toFloat()
-                        onProgressUpdate(progress)
-                        delay(500)
+                setOnPreparedListener { player ->
+                    isPreparing = false
+                    if (isPausedRequested) {
+                        player.pause()
+                        isPausedRequested = false
+                    } else {
+                        player.start()
+                        startProgressTracking(onProgressUpdate)
                     }
                 }
 
-                mediaPlayer?.setOnCompletionListener {
+                setOnCompletionListener {
                     it.release()
                     mediaPlayer = null
                     onCompletion()
-                }
-            } else {
-                mediaPlayer?.release()
-                mediaPlayer = MediaPlayer().apply {
-                    setDataSource(audioUrl)
-                    prepareAsync()
-                    setOnPreparedListener {
-                        start()
-                        val duration = mediaPlayer?.duration ?: 0
-                        val coroutineScope = CoroutineScope(Dispatchers.Main)
-
-                        coroutineScope.launch {
-                            while (mediaPlayer?.isPlaying == true) {
-                                val currentPosition = mediaPlayer?.currentPosition ?: 0
-                                val progress = currentPosition / duration.toFloat()
-                                onProgressUpdate(progress)
-                                delay(500)
-                            }
-                        }
-                    }
-                    setOnCompletionListener {
-                        it.release()
-                        mediaPlayer = null
-                        onCompletion()
-                    }
                 }
             }
         } catch (e: Exception) {
             e.printStackTrace()
             Log.e("Error playing the file", "Error playing file " + e.message)
+            isPreparing = false
         }
+    }
+
+    actual fun resumeAudio(onProgressUpdate: (Float) -> Unit) {
+        mediaPlayer?.let {
+            if (!it.isPlaying) {
+                it.start()
+                startProgressTracking(onProgressUpdate)
+            }
+        }
+    }
+
+    actual fun pauseAudio() {
+        if (isPreparing) {
+            isPausedRequested = true
+        } else if (mediaPlayer?.isPlaying == true) {
+            mediaPlayer?.pause()
+        }
+    }
+
+    actual fun stopAudio() {
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
+        isPreparing = false
+        isPausedRequested = false
     }
 
     actual suspend fun seekTo(newValue: Float) {
@@ -80,15 +93,20 @@ actual class MusicPlayerService {
         }
     }
 
-    actual fun stopAudio() {
-        mediaPlayer?.stop()
-        mediaPlayer?.release()
-        mediaPlayer = null
-    }
-
-    actual fun pauseAudio() {
-        if (mediaPlayer?.isPlaying == true) {
-            mediaPlayer?.pause()
+    private fun startProgressTracking(onProgressUpdate: (Float) -> Unit) {
+        val coroutineScope = CoroutineScope(Dispatchers.Main)
+        coroutineScope.launch {
+            while (mediaPlayer != null && mediaPlayer?.isPlaying == true) {
+                val currentPosition = try {
+                    mediaPlayer?.currentPosition ?: 0
+                } catch (e: IllegalStateException) {
+                    0
+                }
+                val duration = mediaPlayer?.duration ?: 1
+                val progress = currentPosition / duration.toFloat()
+                onProgressUpdate(progress)
+                delay(500)
+            }
         }
     }
 

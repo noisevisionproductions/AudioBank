@@ -1,9 +1,11 @@
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 
 plugins {
+
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidApplication)
+    id("com.android.application") version "8.7.1"
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
     id("com.google.gms.google-services")
@@ -13,14 +15,7 @@ plugins {
 repositories {
     google()
     mavenCentral()
-
-    // TarsosDSP repository
-    maven {
-        name = "TarsosDSP repository"
-        url = uri("https://mvn.0110.be/releases")
-    }
 }
-
 
 kotlin {
     @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -30,7 +25,17 @@ kotlin {
     androidTarget {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_17)
+        }
+
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        instrumentedTestVariant {
+            sourceSetTree.set(KotlinSourceSetTree.test)
+            dependencies {
+                implementation(libs.core.ktx)
+                implementation(libs.compose.ui.test.junit4.android)
+                debugImplementation(libs.compose.ui.test.manifest)
+            }
         }
     }
 
@@ -38,21 +43,13 @@ kotlin {
         iosX64(),
         iosArm64(),
         iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "ComposeApp"
-            isStatic = true
-        }
-    }
+    )
 
     sourceSets {
-
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
-            // libs for music info algorithms
-            implementation(libs.core)
-            implementation(libs.jvm)
+            implementation(libs.androidx.appcompat)
             runtimeOnly(libs.androidx.fragment.ktx)
             // Azure Storage and components for XML
             implementation("com.azure:azure-storage-blob:12.28.0") {
@@ -65,6 +62,12 @@ kotlin {
             implementation(libs.retrofit)
             implementation(libs.converter.gson)
             implementation(libs.logging.interceptor)
+            // Firebase auth
+            implementation(libs.firebase.auth.ktx)
+
+            // Firebase Firestore
+            implementation(project.dependencies.platform(libs.firebase.bom))
+            implementation(libs.firebase.firestore.ktx)
 
         }
 
@@ -78,31 +81,34 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.kotlinx.serialization.json)
-
         }
 
         iosMain.dependencies {
+
         }
     }
 }
 
 android {
-    namespace = "org.noisevisionproductions.samplelibrary"
+    namespace = "org.noisevisionproductions.audiobank"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     sourceSets["main"].manifest.srcFile("src/androidMain/AndroidManifest.xml")
     sourceSets["main"].res.srcDirs("src/androidMain/res")
     sourceSets["main"].resources.srcDirs("src/commonMain/resources")
 
+
     defaultConfig {
         applicationId = "org.noisevisionproductions.samplelibrary"
         vectorDrawables.useSupportLibrary = true
-        minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         minSdk = 26
         versionCode = 1
         versionName = "1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -111,19 +117,15 @@ android {
             excludes += "/META-INF/LICENSE.md"
             excludes += "/META-INF/NOTICE.md"
             excludes += "/META-INF/io.netty.versions.properties"
+
         }
     }
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
-        }
-    }
-    testBuildType = "release"
+
+    testBuildType = "debug"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true

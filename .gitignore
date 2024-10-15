@@ -20,3 +20,4 @@ captures
 key.properties
 google-services.json
 serviceAccountKey.json
+msal_config.json

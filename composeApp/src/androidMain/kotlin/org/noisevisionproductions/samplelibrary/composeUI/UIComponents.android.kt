@@ -12,7 +12,6 @@ import androidx.compose.ui.platform.LocalContext
 import org.noisevisionproductions.samplelibrary.MainActivity
 import org.noisevisionproductions.samplelibrary.interfaces.checkAndRequestStoragePermission
 
-
 @Composable
 actual fun PropertiesMenu(
     fileUrl: String,

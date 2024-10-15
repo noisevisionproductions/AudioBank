@@ -6,6 +6,8 @@ import kotlinx.coroutines.withContext
 
 actual class AzureStorageService {
 
+    private val maxResultPerPage = 50;
+
     actual suspend fun listFilesInBucket(
         bucketName: String,
         continuationToken: String?
@@ -16,7 +18,6 @@ actual class AzureStorageService {
                 if (!containerClient.exists()) {
                     containerClient.create()
                 }
-                val maxResultPerPage = 20
 
                 val options = ListBlobsOptions().setMaxResultsPerPage(maxResultPerPage)
                 val pager = containerClient.listBlobs(options, null)
