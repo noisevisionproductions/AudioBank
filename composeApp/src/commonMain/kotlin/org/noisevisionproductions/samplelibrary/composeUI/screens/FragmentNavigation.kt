@@ -1,10 +1,7 @@
 package org.noisevisionproductions.samplelibrary.composeUI.screens
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,16 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Icon
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.material.TextField
-import androidx.compose.material.TextFieldDefaults
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,15 +25,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.unit.dp
-import org.jetbrains.compose.resources.painterResource
-import org.noisevisionproductions.samplelibrary.composeUI.FiltersAndTagsWindow
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.ForumFragment
-import org.noisevisionproductions.samplelibrary.interfaces.getTagsFromJsonFile
-import samplelibrary.composeapp.generated.resources.Res
-import samplelibrary.composeapp.generated.resources.icon_create
-import samplelibrary.composeapp.generated.resources.icon_filters
 
 @Composable
 fun BarWithFragmentsList() {
@@ -140,89 +123,4 @@ fun TabItem(
             modifier = Modifier.padding(8.dp)
         )
     }
-}
-
-@Composable
-fun RowWithSearchBar(
-    labelText: String,
-    placeholderText: String,
-    onSearchTextChanged: (String) -> Unit,
-    onChangeContent: () -> Unit
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-    var searchText by remember { mutableStateOf("") }
-
-    Row( // pasek z wyszukiwaniem dzwięków
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Image(
-            painter = painterResource(Res.drawable.icon_create),
-            contentDescription = "Create new",
-            modifier = Modifier
-                .background(colors.backgroundGrayColor)
-                .size(50.dp)
-                .clickable(
-                    onClick = { onChangeContent() }, // Funkcja odpowiedzialna za zmianę kontentu
-                    indication = rememberRipple(bounded = true),
-                    interactionSource = remember { MutableInteractionSource() }
-                )
-        )
-
-        // Pole wyszukiwania
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 10.dp)
-                .clip(RoundedCornerShape(25.dp))
-        ) {
-            TextField(
-                value = searchText,
-                onValueChange = {
-                    searchText = it
-                    onSearchTextChanged(it)
-                },
-                singleLine = true,
-                placeholder = {
-                    Text(placeholderText)
-                },
-                leadingIcon = {
-                    Icon(Icons.Filled.Search, contentDescription = "Search icon")
-                },
-                colors = TextFieldDefaults.textFieldColors(
-                    backgroundColor = colors.backgroundDarkGrayColor,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Ikona do rozwijania filtrów
-        Image(
-            painterResource(Res.drawable.icon_filters),
-            contentDescription = "Filters",
-            colorFilter = ColorFilter.tint(colors.textColorMain),
-            modifier = Modifier
-                .background(colors.backgroundGrayColor)
-                .size(50.dp)
-                .clickable(
-                    onClick = {
-                        isExpanded = !isExpanded
-                    }, // Zmienna odpowiedzialna za rozwijanie filtrów
-                    indication = rememberRipple(bounded = true),
-                    interactionSource = remember { MutableInteractionSource() }
-                )
-        )
-    }
-
-    // Animacja rozwijania filtrów
-    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) 140.dp else 0.dp)
-    val tags = getTagsFromJsonFile()
-
-    // Okno z filtrami oraz tagami
-    FiltersAndTagsWindow(isExpanded, expandedHeight, tags = tags)
 }

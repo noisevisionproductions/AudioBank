@@ -13,6 +13,8 @@ import org.noisevisionproductions.samplelibrary.MainActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 
 
 actual fun downloadAndSaveFile(
@@ -87,4 +89,32 @@ actual fun showPostCreatedMessage(message: String) {
 actual fun getCurrentTimestamp(): String {
     val sdf = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
     return sdf.format(Date())
+}
+
+actual fun formatTimeAgo(timestamp: String): String {
+    val dateFormat = SimpleDateFormat("dd-MM-yyyy HH:mm:ss", Locale.getDefault())
+
+    val date = try {
+        dateFormat.parse(timestamp)
+    } catch (e: Exception) {
+        return "Nieznany czas"
+    }
+
+    val timestampMillis = date?.time ?: return "Nieznany czas"
+
+    val currentTime = System.currentTimeMillis()
+    val timeDifference = abs(currentTime - timestampMillis)
+
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(timeDifference)
+    val hours = TimeUnit.MILLISECONDS.toHours(timeDifference)
+    val days = TimeUnit.MILLISECONDS.toDays(timeDifference)
+
+    return when {
+        minutes < 1 -> "Przed chwilą"
+        minutes < 60 -> "$minutes minut temu"
+        hours < 24 -> "$hours godzin temu"
+        days < 7 -> "$days dni temu"
+        days < 30 -> "${days / 7} tygodni temu"
+        else -> "ponad miesiąc temu"
+    }
 }

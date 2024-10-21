@@ -10,3 +10,5 @@ expect fun downloadAndSaveFile(
 expect fun showPostCreatedMessage(message: String)
 
 expect fun getCurrentTimestamp(): String
+
+expect fun formatTimeAgo(timestamp: String): String

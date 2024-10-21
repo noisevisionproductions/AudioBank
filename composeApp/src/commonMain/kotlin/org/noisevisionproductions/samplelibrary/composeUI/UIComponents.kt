@@ -3,10 +3,14 @@ package org.noisevisionproductions.samplelibrary.composeUI
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -25,8 +30,14 @@ import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.Icon
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,56 +46,128 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.jetbrains.compose.resources.painterResource
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
+import samplelibrary.composeapp.generated.resources.Res
+import samplelibrary.composeapp.generated.resources.icon_create
+import samplelibrary.composeapp.generated.resources.icon_error
+import samplelibrary.composeapp.generated.resources.icon_filters
+
 
 @Composable
-fun FiltersAndTagsWindow(isExpanded: Boolean, expandedHeight: Dp, tags: List<String>) {
-    Box(
+fun RowWithSearchBar(
+    placeholderText: String,
+    onSearchTextChanged: (String) -> Unit,
+    onChangeContent: () -> Unit,
+    filters: @Composable () -> Unit,
+    tags: List<String>? = null
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+    var searchText by remember { mutableStateOf("") }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Image(
+            painter = painterResource(Res.drawable.icon_create),
+            contentDescription = "Create new",
+            modifier = Modifier
+                .background(colors.backgroundGrayColor)
+                .size(50.dp)
+                .clickable(
+                    onClick = { onChangeContent() },
+                    indication = rememberRipple(bounded = true),
+                    interactionSource = remember { MutableInteractionSource() }
+                )
+        )
+
+        // Pole wyszukiwania
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 10.dp)
+                .clip(RoundedCornerShape(25.dp))
+        ) {
+            TextField(
+                value = searchText,
+                onValueChange = {
+                    searchText = it
+                    onSearchTextChanged(it)
+                },
+                singleLine = true,
+                placeholder = {
+                    Text(placeholderText)
+                },
+                leadingIcon = {
+                    Icon(Icons.Filled.Search, contentDescription = "Search icon")
+                },
+                colors = TextFieldDefaults.textFieldColors(
+                    backgroundColor = colors.backgroundDarkGrayColor,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        // Ikona do rozwijania filtrów
+        Image(
+            painterResource(Res.drawable.icon_filters),
+            contentDescription = "Filters",
+            colorFilter = ColorFilter.tint(colors.textColorMain),
+            modifier = Modifier
+                .background(colors.backgroundGrayColor)
+                .size(50.dp)
+                .clickable(
+                    onClick = {
+                        isExpanded = !isExpanded
+                    }, // Zmienna odpowiedzialna za rozwijanie filtrów
+                    indication = rememberRipple(bounded = true),
+                    interactionSource = remember { MutableInteractionSource() }
+                )
+        )
+    }
+
+    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) 140.dp else 0.dp)
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .height(expandedHeight)
-            .background(colors.backgroundGrayColor)
-            .pointerInput(isExpanded) {
-                if (!isExpanded) {
-                    detectTapGestures {}
-                }
-            }
+            .padding(8.dp)
     ) {
         if (isExpanded) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ) {
-                    DropDownMenuWithItems("Instrumenty")
-                    DropDownMenuWithItems("Rodzaje")
-                    DropDownMenuWithItems("Ton")
-                    DropDownMenuWithItems("BPM")
-                }
+                filters()
+            }
 
+            tags?.let {
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp) // TODO zastosowac to w ikonach w playerze?
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 )
                 {
                     items(tags) { tag ->
@@ -108,42 +191,61 @@ fun TagItem(tag: String) {
 }
 
 @Composable
-fun DropDownMenuWithItems(label: String) {
+fun DropDownMenuWithItems(label: String, options: List<String>, onItemSelected: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf(label) }
 
     Column {
-        Button(onClick = { expanded = !expanded }) {
-            Text(selectedItem)
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .border(2.dp, colors.barColor, RoundedCornerShape(16.dp))
+                .background(Color.Transparent)
+                .clickable { expanded = !expanded }
+                .padding(16.dp)
+        ) {
+            Text(
+                text = selectedItem,
+                color = colors.barColor,
+                modifier = Modifier.align(Alignment.CenterStart)
+            )
         }
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .background(colors.backgroundDarkGrayColor)
         ) {
-            DropdownMenuItem(onClick = {
-                selectedItem = "Opcja 1"
-                expanded = false
-            }) {
-                Text("Opcja 1")
+            DropdownMenuItem(
+                onClick = {
+                    selectedItem = label // Reset to default label
+                    expanded = false
+                    onItemSelected("") // Notify that filters should be cleared
+                },
+                modifier = Modifier
+                    .background(Color.Transparent)
+            ) {
+                Text(
+                    text = "Wyczyść filtry",
+                    color = colors.textColorMain,
+                )
             }
-            DropdownMenuItem(onClick = {
-                selectedItem = "Opcja 2"
-                expanded = false
-            }) {
-                Text("Opcja 2")
-            }
-            DropdownMenuItem(onClick = {
-                selectedItem = "Opcja 3"
-                expanded = false
-            }) {
-                Text("Opcja 3")
-            }
-            DropdownMenuItem(onClick = {
-                selectedItem = "Opcja 4"
-                expanded = false
-            }) {
-                Text("Opcja 4")
+            options.forEach { option ->
+                DropdownMenuItem(
+                    onClick = {
+                        selectedItem = option
+                        expanded = false
+                        onItemSelected(option)
+                    },
+                    modifier = Modifier
+                        .background(Color.Transparent)
+                ) {
+                    Text(
+                        text = option,
+                        color = colors.textColorMain,
+                    )
+                }
             }
         }
     }
@@ -241,6 +343,16 @@ fun ShowDialogAlert(onConfirm: () -> Unit, onDismiss: () -> Unit, contentQuestio
             }
         },
         shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
+fun ErrorIcon() {
+    Image(
+        painter = painterResource(Res.drawable.icon_error),
+        contentDescription = "Error",
+        colorFilter = ColorFilter.tint(Color.Red),
+        modifier = Modifier.size(15.dp)
     )
 }
 

@@ -4,5 +4,6 @@ data class UserModel(
     val id: String = "",
     val username: String = "",
     val registrationDate: String = "",
-    val label: String = ""
+    val label: String = "",
+    val likedPosts: List<String> = emptyList()
 )

@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
@@ -29,38 +29,68 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.noisevisionproductions.samplelibrary.composeUI.viewModels.UserViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.DropDownMenuWithItems
+import org.noisevisionproductions.samplelibrary.composeUI.RowWithSearchBar
 import org.noisevisionproductions.samplelibrary.composeUI.ShowDialogAlert
-import org.noisevisionproductions.samplelibrary.composeUI.screens.RowWithSearchBar
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
+import org.noisevisionproductions.samplelibrary.composeUI.viewModels.CommentViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.viewModels.PostViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.viewModels.UserViewModel
 import org.noisevisionproductions.samplelibrary.database.ForumService
+import org.noisevisionproductions.samplelibrary.interfaces.formatTimeAgo
+import org.noisevisionproductions.samplelibrary.interfaces.getTagsFromJsonFile
+import org.noisevisionproductions.samplelibrary.utils.UiState
+import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 
 @Composable
 fun ForumFragment() {
     val postViewModel = PostViewModel()
     val userViewModel = UserViewModel()
-    val forumService = ForumService()
-    var selectedPost by remember { mutableStateOf<PostModel?>(null) }
-    var isContentReplaced by remember { mutableStateOf(false) }
+    val commentViewModel = CommentViewModel()
+    val forumService = remember { ForumService() }
+
+    var selectedPost by rememberSaveable { mutableStateOf<PostModel?>(null) }
+    var isCreatingPost by rememberSaveable { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
+
     val onSearchTextChanged: (String) -> Unit = { query ->
     }
 
-    fun toggleContent() {
-        if (isContentReplaced) {
+    val tags = getTagsFromJsonFile()
+
+    val filters: @Composable () -> Unit = {
+        DropDownMenuWithItems(
+            label = "Kategorie",
+            options = listOf("Muzyka", "Opinie"),
+            onItemSelected = { category ->
+                postViewModel.setSelectedCategory(category)
+            }
+        )
+        DropDownMenuWithItems(
+            label = "Sortowanie",
+            options = listOf("Najnowsze", "Najstarsze"),
+            onItemSelected = { sortingOption ->
+                postViewModel.setSelectedSortingOption(sortingOption)
+            }
+        )
+    }
+
+    fun togglePostCreation() {
+        if (isCreatingPost) {
             showDialog = true
         } else {
-            isContentReplaced = true
+            isCreatingPost = true
         }
     }
 
@@ -71,12 +101,13 @@ fun ForumFragment() {
             .background(colors.backgroundGrayColor)
     ) {
         RowWithSearchBar(
-            "Forum",
             "Wyszukaj wątki",
             onSearchTextChanged = onSearchTextChanged,
             onChangeContent = {
-                toggleContent()
-            }
+                togglePostCreation()
+            },
+            filters = filters,
+            tags = tags
         )
         Box(
             modifier = Modifier
@@ -85,25 +116,32 @@ fun ForumFragment() {
                 .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
                 .background(colors.backgroundWhiteColor)
         ) {
-            if (isContentReplaced) {
-                CreateNewPost(
-                    onPostCreated = { isContentReplaced = false },
-                    forumService = forumService
-                )
-            } else {
-                if (selectedPost != null) {
-                    PostDetailView(
-                        post = selectedPost!!, onBack = { selectedPost = null },
-                        postViewModel = postViewModel,
-                        userViewModel = userViewModel
+            when {
+                isCreatingPost -> {
+                    CreateNewPost(
+                        onPostCreated = { isCreatingPost = false },
+                        forumService = forumService
                     )
-                } else {
+                }
+
+                selectedPost != null -> {
+                    PostDetailView(
+                        postId = selectedPost!!.postId,
+                        onBack = { selectedPost = null },
+                        postViewModel = postViewModel,
+                        userViewModel = userViewModel,
+                        commentViewModel = commentViewModel
+                    )
+                }
+
+                else -> {
                     MainContentWithForum(
                         onPostClick = { post ->
                             selectedPost = post
                         },
                         postViewModel = postViewModel,
-                        userViewModel = userViewModel
+                        userViewModel = userViewModel,
+                        commentViewModel = commentViewModel
                     )
                 }
             }
@@ -112,7 +150,7 @@ fun ForumFragment() {
     if (showDialog) {
         ShowDialogAlert(
             onConfirm = {
-                isContentReplaced = false
+                isCreatingPost = false
                 showDialog = false
             },
             onDismiss = {
@@ -127,46 +165,48 @@ fun ForumFragment() {
 fun MainContentWithForum(
     onPostClick: (PostModel) -> Unit,
     postViewModel: PostViewModel,
-    userViewModel: UserViewModel
+    userViewModel: UserViewModel,
+    commentViewModel: CommentViewModel,
 ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
     )
     {
         Text(
             text = "Najnowsza aktywność na forum",
             style = MaterialTheme.typography.h6,
-            modifier = Modifier.padding(start = 10.dp, end = 10.dp),
+            modifier = Modifier
+                .padding(horizontal = 10.dp, vertical = 5.dp),
             color = colors.textColorMain,
             fontSize = 16.sp,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Left
         )
         Text(
             text = "Znajdziesz tutaj aktywne posty, które zawierają ostatnią aktywność",
             style = MaterialTheme.typography.body1,
             fontSize = 13.sp,
-            modifier = Modifier.padding(start = 10.dp, end = 10.dp),
-            color = colors.hintTextColorLight,
-            textAlign = TextAlign.Center
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            color = colors.hintTextColorDark,
+            textAlign = TextAlign.Left,
+            lineHeight = 16.sp
         )
         Divider(
             color = colors.textColorMain,
-            thickness = 1.dp,
+            thickness = 2.dp,
             modifier = Modifier.padding(horizontal = 10.dp)
+                .padding(top = 10.dp)
         )
 
         PostListView(
             postViewModel = postViewModel,
             onPostClick = onPostClick,
-            userViewModel = userViewModel
+            userViewModel = userViewModel,
+            commentViewModel = commentViewModel
         )
     }
 }
-
 
 @Composable
 fun ShowAgreementDialog(onAgreementDialogShown: () -> Unit) {
@@ -190,47 +230,81 @@ fun ShowAgreementDialog(onAgreementDialogShown: () -> Unit) {
 @Composable
 fun PostListView(
     postViewModel: PostViewModel,
+    commentViewModel: CommentViewModel,
     onPostClick: (PostModel) -> Unit,
     userViewModel: UserViewModel
 ) {
-    val posts by postViewModel.posts.collectAsState()
-    val isLoading by postViewModel.isLoading.collectAsState()
-    val error by postViewModel.error.collectAsState()
+    val uiState by postViewModel.uiState.collectAsState()
+    val isLoadingMore by postViewModel.isLoadingMore.collectAsState()
 
-    when {
-        isLoading -> {
+    when (uiState) {
+        is UiState.Loading -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         }
 
-        error != null -> {
+        is UiState.Error -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Error: $error", color = Color.Red)
+                Text(text = "Error: ${(uiState as UiState.Error).message}", color = Color.Red)
             }
         }
 
-        posts.isEmpty() -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No posts available")
-            }
-        }
+        is UiState.Success -> {
+            val postsWithCategories = (uiState as UiState.Success).posts
 
-        else -> {
-            LazyColumn {
-                items(posts) { post ->
-                    Column {
-                        PostModelItem(
-                            post = post,
-                            onClick = { onPostClick(post) },
-                            userViewModel = userViewModel,
-                            postViewModel = postViewModel
-                        )
-                        Divider(
-                            color = colors.dividerLightGray,
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(horizontal = 10.dp)
-                        )
+            if (postsWithCategories.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = "Brak dostępnych postów")
+                }
+            } else {
+                LazyColumn {
+                    itemsIndexed(postsWithCategories) { index, postsWithCategory ->
+
+                        LaunchedEffect(postsWithCategory.post.postId) {
+                            commentViewModel.loadComments(postsWithCategory.post.postId)
+                        }
+
+                        val commentState by commentViewModel.getCommentsStateForPost(
+                            postsWithCategory.post.postId
+                        ).collectAsState()
+
+                        val lastComment =
+                            commentViewModel.getLastCommentForPost(postsWithCategory.post.postId)
+
+                        Column {
+                            PostModelItem(
+                                post = postsWithCategory.post,
+                                categoryName = postsWithCategory.categoryName,
+                                onClick = { onPostClick(postsWithCategory.post) },
+                                userViewModel = userViewModel,
+                                commentCount = commentState.totalCount,
+                                isLoadingComments = commentState.isLoading,
+                                lastComment = lastComment
+                            )
+                            Divider(
+                                color = colors.hintTextColorLight,
+                                thickness = 1.dp,
+                                modifier = Modifier.padding(horizontal = 10.dp)
+                            )
+                        }
+
+                        if (index == postsWithCategories.size - 1 && !isLoadingMore) {
+                            postViewModel.onScrollToEnd()
+                        }
+                    }
+
+                    if (isLoadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
                     }
                 }
             }
@@ -241,29 +315,24 @@ fun PostListView(
 @Composable
 fun PostModelItem(
     post: PostModel,
+    categoryName: String,
     onClick: () -> Unit,
     userViewModel: UserViewModel,
-    postViewModel: PostViewModel
+    lastComment: CommentModel?,
+    commentCount: Int,
+    isLoadingComments: Boolean
 ) {
-    val username by userViewModel.username.collectAsState()
     val isLoading by userViewModel.isLoading.collectAsState()
     val error by userViewModel.error.collectAsState()
+    val textSize = 14.sp
 
     val date = post.timestamp.substringBefore(" ")
-    val categoryName = remember { mutableStateOf("") }
-    val isCategoryLoading = remember { mutableStateOf(true) }
-
-    LaunchedEffect(post.categoryId) {
-        isCategoryLoading.value = true
-        categoryName.value = postViewModel.getCategoryName(post.categoryId)
-        isCategoryLoading.value = false
-    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(10.dp)
-            .size(70.dp)
+            .size(100.dp)
             .clickable { onClick() },
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -275,7 +344,11 @@ fun PostModelItem(
         ) {
             Text(
                 text = post.title,
-                style = MaterialTheme.typography.h6
+                style = MaterialTheme.typography.h6,
+                fontSize = 15.sp,
+                lineHeight = 15.sp,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -299,26 +372,59 @@ fun PostModelItem(
                 }
 
                 else -> {
-                    Text(
-                        text = "Autor: ${username ?: "Nieznany"}",
-                        style = MaterialTheme.typography.caption
-                    )
+                    Row {
+                        Text(
+                            text = "Zapostował: ",
+                            color = colors.hintTextColorMedium,
+                            fontSize = textSize
+                        )
+                        Text(
+                            text = post.username,
+                            color = colors.hintTextColorLight,
+                            fontSize = textSize
+                        )
+                    }
                 }
             }
             Column(
                 horizontalAlignment = Alignment.Start,
             ) {
-                if (isCategoryLoading.value) {
-                    LinearProgressIndicator(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp),
-                        color = colors.backgroundGrayColor
-                    )
-                } else {
+                Row {
                     Text(
-                        text = "$date | W: ${categoryName.value}",
-                        style = MaterialTheme.typography.caption,
+                        text = date,
+                        color = colors.hintTextColorMedium,
+                        fontSize = textSize
+                    )
+                }
+                Row {
+                    Text(
+                        text = "Odpowiedzi: ",
+                        color = colors.hintTextColorMedium,
+                        fontSize = textSize
+                    )
+
+                    if (isLoadingComments) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = colors.hintTextColorLight
+                        )
+                    } else {
+                        Text(
+                            text = commentCount.toString(),
+                            color = colors.hintTextColorLight,
+                            fontSize = textSize
+                        )
+                    }
+                    Text(
+                        text = " | W: ",
+                        color = colors.hintTextColorMedium,
+                        fontSize = textSize
+                    )
+                    Text(
+                        text = categoryName,
+                        color = colors.hintTextColorLight,
+                        fontSize = textSize
                     )
                 }
             }
@@ -327,20 +433,25 @@ fun PostModelItem(
         Column(
             modifier = Modifier
                 .fillMaxHeight()
-                .padding(start = 10.dp, end = 20.dp),
+                .padding(start = 10.dp, end = 10.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Column(
                 horizontalAlignment = Alignment.Start,
             ) {
                 Text(
-                    text = "Najnowszy post:",
-                    style = MaterialTheme.typography.caption
+                    text = "Najnowszy komentarz:",
+                    style = MaterialTheme.typography.caption,
+                    color = colors.hintTextColorMedium,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = textSize
                 )
                 Text(
-                    text = "Brak",
+                    text = lastComment?.timestamp?.let { formatTimeAgo(it) } ?: "-",
                     style = MaterialTheme.typography.caption,
-                    color = colors.hintTextColorLight
+                    color = colors.hintTextColorLight,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = textSize
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -350,17 +461,19 @@ fun PostModelItem(
             ) {
 
                 Text(
-                    text = "Od: ",
-                    style = MaterialTheme.typography.caption
+                    text = "Od:",
+                    style = MaterialTheme.typography.caption,
+                    color = colors.hintTextColorMedium,
+                    fontSize = textSize
                 )
                 Text(
-                    text = "User",
+                    text = lastComment?.username ?: "-",
                     style = MaterialTheme.typography.caption,
-                    color = colors.hintTextColorLight
+                    color = colors.hintTextColorLight,
+                    overflow = TextOverflow.Ellipsis,
+                    fontSize = textSize
                 )
-
             }
         }
-
     }
 }

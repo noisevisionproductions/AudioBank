@@ -2,10 +2,9 @@ package org.noisevisionproductions.samplelibrary.database
 
 import org.noisevisionproductions.samplelibrary.utils.models.CategoryModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
+import org.noisevisionproductions.samplelibrary.utils.models.PostWithCategory
 
 expect class ForumService() {
-    suspend fun getCategories(onCategoriesLoaded: (List<CategoryModel>) -> Unit)
-    suspend fun getCategoryName(categoryId: String): String
     suspend fun createPost(
         title: String,
         content: String,
@@ -15,5 +14,12 @@ expect class ForumService() {
         onPostCreated: (Boolean) -> Unit,
     )
 
-    suspend fun getPostsFromFirestore(): Result<List<PostModel>>
+    suspend fun getCategories(onCategoriesLoaded: (List<CategoryModel>) -> Unit)
+    suspend fun getCategoryName(categoryId: String): String
+    suspend fun getCategoryNames(categoryIds: List<String>): Map<String, CategoryModel>
+    suspend fun getPostsFromFirestore(
+        lastPostId: String? = null,
+        selectedCategoryId: String?,
+        selectedSortingOption: String?
+    ): Result<List<PostWithCategory>>
 }

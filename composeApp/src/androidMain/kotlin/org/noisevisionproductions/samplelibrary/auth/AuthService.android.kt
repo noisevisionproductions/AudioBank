@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 import org.noisevisionproductions.samplelibrary.utils.models.UserModel
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -91,6 +92,59 @@ actual class AuthService actual constructor() {
         }
     }
 
+    actual suspend fun toggleLikePost(postId: String): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            val uid = getCurrentUserId()
+            if (uid != null) {
+                try {
+                    val userReference = firestore.collection("users").document(uid)
+                    val postReference = firestore.collection("posts").document(postId)
 
+                    firestore.runTransaction { transaction ->
+                        val userSnapshot = transaction.get(userReference)
+                        val postSnapshot = transaction.get(postReference)
+
+                        val user = userSnapshot.toObject(UserModel::class.java)
+                        val post = postSnapshot.toObject(PostModel::class.java)
+
+                        if (user != null && post != null) {
+                            val isCurrentlyLiked = user.likedPosts.contains(postId)
+
+                            val updatedLikedPosts = if (isCurrentlyLiked) {
+                                user.likedPosts - postId
+                            } else {
+                                user.likedPosts + postId
+                            }
+
+                            val updatedLikesCount = if (isCurrentlyLiked) {
+                                if (post.likesCount > 0) post.likesCount - 1 else 0
+                            } else {
+                                post.likesCount + 1
+                            }
+
+                            transaction.update(userReference, "likedPosts", updatedLikedPosts)
+                            transaction.update(postReference, "likesCount", updatedLikesCount)
+
+                        }
+                    }.await()
+                    Result.success(true)
+                } catch (e: Exception) {
+                    Log.e("AuthService", "Error toggling like: ${e.message}")
+                    Result.failure(e)
+                }
+            } else {
+                Result.failure(Exception("User not logged in"))
+            }
+        }
+
+    actual suspend fun isPostLiked(postId: String): Boolean = withContext(Dispatchers.IO) {
+        val uid = getCurrentUserId()
+        if (uid != null) {
+            val documentSnapshot = firestore.collection("users").document(uid).get().await()
+            val userModel = documentSnapshot.toObject(UserModel::class.java)
+            return@withContext userModel?.likedPosts?.contains(postId) == true
+        }
+        false
+    }
 }
 

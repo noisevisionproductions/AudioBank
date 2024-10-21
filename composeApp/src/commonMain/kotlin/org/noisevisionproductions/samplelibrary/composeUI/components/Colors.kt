@@ -18,7 +18,10 @@ class Colors {
     val textColorChosenBar = Color(0xFF1e1e1e)
     val textColorUnChosenBar = Color(0x99FFFFFF)
 
-    val hintTextColorLight = Color(0x99000000)
+    val hintTextColorDark = Color(0xBB000000)
+    val hintTextColorMedium = Color(0x99000000)
+    val hintTextColorLight = Color(0x77000000)
+
     val dividerLightGray = Color(0x60000000)
 
     val propertiesColorBottomSheet = Color(0xFF456161)

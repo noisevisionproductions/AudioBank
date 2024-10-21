@@ -136,5 +136,6 @@ android {
 }
 dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 }
 

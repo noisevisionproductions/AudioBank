@@ -10,5 +10,6 @@ data class PostModel(
     val categoryId: String = "",
     val title: String = "",
     val content: String = "",
-    val replies: List<String> = listOf()
+    var likesCount: Int = 0,
+    var isLiked: Boolean = false
 )

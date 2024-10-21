@@ -1,15 +1,18 @@
 package org.noisevisionproductions.samplelibrary.composeUI.screens.forum
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Button
@@ -18,11 +21,15 @@ import androidx.compose.material.Checkbox
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
+import androidx.compose.material.Icon
+import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -33,14 +40,18 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.auth.AuthService
+import org.noisevisionproductions.samplelibrary.composeUI.ErrorIcon
 import org.noisevisionproductions.samplelibrary.composeUI.viewModels.UserViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.database.ForumService
@@ -95,26 +106,35 @@ fun CreateNewPost(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(),
+                .padding(vertical = 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Stwórz post na forum",
                 style = MaterialTheme.typography.h6,
-                modifier = Modifier.padding(10.dp)
-                    .weight(0.1f),
+                modifier = Modifier
+                    .padding(10.dp),
                 fontSize = 20.sp,
                 color = colors.textColorMain
             )
 
-
-            if (isLoading) {
-                CircularProgressIndicator()
-            } else {
-                CategoryDropdownMenu(categories = categories, onCategorySelected = {
-                    selectedCategory = it
-                })
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+            ) {
+                if (isLoading) {
+                    LinearProgressIndicator(
+                        color = colors.hintTextColorLight,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                } else {
+                    CategoryDropdownMenu(
+                        categories = categories,
+                        onCategorySelected = {
+                            selectedCategory = it
+                        })
+                }
             }
         }
 
@@ -144,12 +164,24 @@ fun CreateNewPost(
         )
 
         if (isTitleError) {
-            Text(
-                text = "Tytuł nie może być pusty",
-                color = Color.Red,
-                modifier = Modifier.padding(start = 10.dp)
-                    .weight(0.05f)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ErrorIcon()
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Tytuł nie może być pusty",
+                    color = Color.Red,
+                    modifier = Modifier
+                        .padding(start = 5.dp)
+                        .weight(0.05f),
+                    fontSize = 16.sp
+                )
+            }
+
         }
 
         OutlinedTextField(
@@ -163,7 +195,7 @@ fun CreateNewPost(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(0.5f)
-                .padding(top = 16.dp, bottom = 16.dp),
+                .padding(top = 16.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 backgroundColor = colors.backgroundWhiteColor,
                 focusedBorderColor = colors.textColorMain,
@@ -177,119 +209,107 @@ fun CreateNewPost(
         )
 
         if (isContentError) {
-            Text(
-                text = "Treść posta nie może być pusta",
-                color = Color.Red,
-                modifier = Modifier.padding(start = 10.dp)
-                    .weight(0.05f)
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .weight(0.1f),
-            verticalAlignment = Alignment.CenterVertically
-        )
-        {
-            Checkbox(
-                checked = isAnonymousPostChecked,
-                onCheckedChange = { isAnonymousPostChecked = it }
-            )
-            Text(
-                text = "Udostępnij post anonimowo",
-                modifier = Modifier.padding(start = 4.dp)
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-                .weight(0.1f),
-            verticalAlignment = Alignment.CenterVertically
-        )
-        {
-            Checkbox(
-                checked = isAgreementChecked,
-                onCheckedChange = { isAgreementChecked = it }
-            )
-            Text(
-                text = "Akceptuję regulamin forum",
-                modifier = Modifier.padding(start = 4.dp)
-                    .clickable {
-                        showAgreementDialog = true
-                    },
-                style = TextStyle(
-                    color = Color.Blue,
-                    textDecoration = TextDecoration.Underline
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 5.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ErrorIcon()
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Treść posta nie może być pusta",
+                    color = Color.Red,
+                    modifier = Modifier
+                        .padding(start = 5.dp)
+                        .weight(0.05f),
+                    fontSize = 16.sp
                 )
+            }
+        }
 
-            )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalAlignment = Alignment.End,
+        )
+        {
+            // Pierwszy rząd - Checkbox i tekst "Udostępnij post anonimowo"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End, // Wyrównanie do prawej
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = isAnonymousPostChecked,
+                    onCheckedChange = { isAnonymousPostChecked = it }
+                )
+                Text(
+                    text = "Udostępnij post anonimowo",
+                    modifier = Modifier.padding(start = 4.dp)
+                )
+            }
+
+            // Drugi rząd - Checkbox i tekst "Akceptuję regulamin forum"
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End, // Wyrównanie do prawej
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = isAgreementChecked,
+                    onCheckedChange = { isAgreementChecked = it }
+                )
+                Text(
+                    text = "Akceptuję regulamin forum",
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .clickable {
+                            showAgreementDialog = true
+                        },
+                    style = TextStyle(
+                        color = Color.Blue,
+                        textDecoration = TextDecoration.Underline
+                    )
+                )
+            }
         }
 
         if (showAgreementDialog) {
             ShowAgreementDialog(onAgreementDialogShown = { showAgreementDialog = false })
         }
 
+        if (errorMessage?.isNotEmpty() == true) {
+            Text(
+                text = errorMessage!!,
+                color = Color.Red,
+                modifier = Modifier
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .fillMaxWidth(),
+                style = LocalTextStyle.current.copy(
+                    fontSize = 14.sp,
+                    textAlign = TextAlign.Center
+                )
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(
-                onClick = {
-                    if (isFormValid && selectedCategory != null) {
-                        coroutineScope.launch {
-                            authService.getCurrentUserId()?.let { userId ->
-                                val postUsername = when {
-                                    isAnonymousPostChecked -> "Anonim"
-                                    username != null -> username
-                                    else -> "Niezalogowany użytkownik"
-                                }
-
-                                if (postUsername != null) {
-                                    forumService.createPost(
-                                        title = titleText,
-                                        content = contentText,
-                                        username = postUsername,
-                                        categoryId = selectedCategory!!.id,
-                                        userId = userId
-                                    ) { success ->
-                                        if (success) {
-                                            errorMessage = null
-                                            showPostCreatedMessage("Post utworzony")
-                                            onPostCreated()
-                                        } else {
-                                            errorMessage = "Błąd podczas tworzenia postu"
-                                        }
-                                    }
-                                }
-                            } ?: run {
-                                errorMessage = "Nie można pobrać danych użytkownika"
-                            }
-                        }
-                    } else {
-                        errorMessage = "Wypełnij wszystkie pola"
-                    }
-                },
-                enabled = isFormValid,
-                modifier = Modifier
-                    .size(100.dp, 50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = if (isFormValid) colors.primaryBackgroundColor else colors.primaryBackgroundColorLight
-                ),
-                shape = RoundedCornerShape(30.dp)
-            ) {
-                Text(
-                    "Wyślij",
-                    style = LocalTextStyle.current.copy(
-                        fontSize = 16.sp,
-                        color = colors.backgroundWhiteColor
-                    )
-                )
-            }
+            ButtonForPostCreating(
+                titleText = titleText,
+                contentText = contentText,
+                selectedCategory = selectedCategory,
+                isAnonymousPostChecked = isAnonymousPostChecked,
+                isFormValid = isFormValid,
+                username = username,
+                authService = authService,
+                forumService = forumService,
+                coroutineScope = coroutineScope,
+                onPostCreated = onPostCreated,
+                onErrorMessage = { error -> errorMessage = error })
         }
     }
 }
@@ -302,29 +322,112 @@ fun CategoryDropdownMenu(
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf<CategoryModel?>(null) }
 
-    Box(modifier = Modifier.padding(10.dp)) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF98a3f3))
+            .clickable { expanded = !expanded }
+            .padding(horizontal = 8.dp)
+    ) {
         Text(
             text = selectedCategory?.name ?: "Wybierz kategorię",
             modifier = Modifier
                 .clickable { expanded = true }
-                .padding(16.dp)
-                .background(Color.LightGray)
-                .padding(16.dp)
+                .padding(8.dp),
+            color = colors.backgroundWhiteColor
         )
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .background(colors.backgroundDarkGrayColor)
         ) {
             categories.forEach { category ->
-                DropdownMenuItem(onClick = {
-                    selectedCategory = category
-                    onCategorySelected(category)
-                    expanded = false
-                }) {
+                DropdownMenuItem(
+                    onClick = {
+                        selectedCategory = category
+                        onCategorySelected(category)
+                        expanded = false
+                    },
+                    modifier = Modifier
+                        .background(Color.Transparent)
+                ) {
                     Text(text = category.name)
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ButtonForPostCreating(
+    titleText: String,
+    contentText: String,
+    selectedCategory: CategoryModel?,
+    isAnonymousPostChecked: Boolean,
+    isFormValid: Boolean,
+    username: String?,
+    authService: AuthService,
+    forumService: ForumService,
+    coroutineScope: CoroutineScope,
+    onPostCreated: () -> Unit,
+    onErrorMessage: (String) -> Unit
+) {
+    Button(
+        onClick = {
+            if (isFormValid && selectedCategory != null) {
+                coroutineScope.launch {
+                    val userId = authService.getCurrentUserId()
+
+                    if (userId == null) {
+                        onErrorMessage("Musisz być zalogowany, aby utworzyć post")
+                        return@launch
+                    }
+
+                    val postUsername = if (isAnonymousPostChecked) {
+                        "Anonim"
+                    } else {
+                        username ?: run {
+                            println("Nie można pobrać nazwy użytkownika")
+                            return@launch
+                        }
+                    }
+
+                    forumService.createPost(
+                        title = titleText,
+                        content = contentText,
+                        username = postUsername,
+                        categoryId = selectedCategory.id,
+                        userId = userId
+                    ) { success ->
+                        if (success) {
+                            onErrorMessage("")
+                            showPostCreatedMessage("Post utworzony")
+                            onPostCreated()
+                        } else {
+                            onErrorMessage("Błąd podczas tworzenia postu")
+                        }
+                    }
+                }
+            } else {
+                onErrorMessage("Wypełnij wszystkie pola")
+            }
+        },
+        enabled = isFormValid,
+        modifier = Modifier
+            .size(100.dp, 50.dp),
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = if (isFormValid) colors.primaryBackgroundColor else colors.primaryBackgroundColorLight
+        ),
+        shape = RoundedCornerShape(30.dp)
+    ) {
+        Text(
+            "Wyślij",
+            style = LocalTextStyle.current.copy(
+                fontSize = 16.sp,
+                color = colors.backgroundWhiteColor
+            )
+        )
     }
 }

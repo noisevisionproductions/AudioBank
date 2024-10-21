@@ -43,14 +43,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import org.noisevisionproductions.samplelibrary.composeUI.DropDownMenuWithItems
 import org.noisevisionproductions.samplelibrary.composeUI.PlayPauseButton
 import org.noisevisionproductions.samplelibrary.composeUI.PropertiesMenu
+import org.noisevisionproductions.samplelibrary.composeUI.RowWithSearchBar
 import org.noisevisionproductions.samplelibrary.composeUI.ScrollingText
 import org.noisevisionproductions.samplelibrary.composeUI.components.BottomSheetCustomUI
 import org.noisevisionproductions.samplelibrary.composeUI.playNextSong
 import org.noisevisionproductions.samplelibrary.composeUI.playPreviousSong
 import org.noisevisionproductions.samplelibrary.database.AzureCosmosDBService
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
+import org.noisevisionproductions.samplelibrary.interfaces.getTagsFromJsonFile
 import org.noisevisionproductions.samplelibrary.utils.FileMetadata
 import org.noisevisionproductions.samplelibrary.utils.decodeFileName
 import org.noisevisionproductions.samplelibrary.utils.decodeUrl
@@ -423,7 +426,14 @@ fun SampleListContent(
 ) {
     var content by remember { mutableStateOf("Początkowy kontent") }
 
-
+    var filters: @Composable () -> Unit = {
+        DropDownMenuWithItems(
+            label = "Instrumenty",
+            options = listOf("Gitara", "Pianino", "Perkusja"),
+            onItemSelected = { }
+        )
+    }
+    val tags = getTagsFromJsonFile()
 
     Column(
         modifier = Modifier
@@ -432,7 +442,6 @@ fun SampleListContent(
             .background(colors.backgroundGrayColor)
     ) {
         RowWithSearchBar(
-            labelText = "Dźwięki",
             placeholderText = "Wyszukaj dźwięki",
             onSearchTextChanged = onSearchTextChanged,
             onChangeContent = {
@@ -442,6 +451,9 @@ fun SampleListContent(
                 } else {
                     "Początkowy kontent"
                 }
+            },
+            filters = {
+                filters = filters
             }
         )
 
