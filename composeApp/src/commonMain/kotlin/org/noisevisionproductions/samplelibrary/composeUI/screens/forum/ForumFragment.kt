@@ -29,7 +29,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,123 +38,159 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.noisevisionproductions.samplelibrary.auth.AuthService
+import org.noisevisionproductions.samplelibrary.auth.UserViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.CustomTopAppBar
 import org.noisevisionproductions.samplelibrary.composeUI.DropDownMenuWithItems
 import org.noisevisionproductions.samplelibrary.composeUI.RowWithSearchBar
 import org.noisevisionproductions.samplelibrary.composeUI.ShowDialogAlert
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
-import org.noisevisionproductions.samplelibrary.composeUI.viewModels.CommentViewModel
-import org.noisevisionproductions.samplelibrary.composeUI.viewModels.PostViewModel
-import org.noisevisionproductions.samplelibrary.composeUI.viewModels.UserViewModel
-import org.noisevisionproductions.samplelibrary.database.ForumService
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postCreating.CreateNewPost
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postCreating.CreatePostViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWindow.PostDetailView
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWindow.PostViewModel
+import org.noisevisionproductions.samplelibrary.database.ForumRepository
 import org.noisevisionproductions.samplelibrary.interfaces.formatTimeAgo
-import org.noisevisionproductions.samplelibrary.interfaces.getTagsFromJsonFile
 import org.noisevisionproductions.samplelibrary.utils.UiState
 import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 
 @Composable
-fun ForumFragment() {
-    val postViewModel = PostViewModel()
-    val userViewModel = UserViewModel()
-    val commentViewModel = CommentViewModel()
-    val forumService = remember { ForumService() }
+fun ForumNavigationHost(
+    postViewModel: PostViewModel,
+    userViewModel: UserViewModel,
+    commentViewModel: CommentViewModel,
+    authService: AuthService,
+    forumRepository: ForumRepository,
+    likeManager: LikeManager
+) {
+    var currentScreen by remember { mutableStateOf<ForumScreenNavigation>(ForumScreenNavigation.PostList) }
 
-    var selectedPost by rememberSaveable { mutableStateOf<PostModel?>(null) }
-    var isCreatingPost by rememberSaveable { mutableStateOf(false) }
-    var showDialog by remember { mutableStateOf(false) }
+    when (currentScreen) {
+        is ForumScreenNavigation.PostList -> {
+            ForumContent(
+                postViewModel = postViewModel,
+                userViewModel = userViewModel,
+                commentViewModel = commentViewModel,
+                onNavigateToCreate = { currentScreen = ForumScreenNavigation.CreatePost },
+                onNavigateToDetail = { post ->
+                    currentScreen = ForumScreenNavigation.PostDetail(post.postId)
+                }
+            )
+        }
 
-    val onSearchTextChanged: (String) -> Unit = { query ->
-    }
+        is ForumScreenNavigation.CreatePost -> {
+            CreatePostScreen(
+                createPostViewModel = CreatePostViewModel(
+                    forumRepository = forumRepository,
+                    authService = authService
+                ),
+                userViewModel = userViewModel,
+                onNavigateBack = { currentScreen = ForumScreenNavigation.PostList }
+            )
+        }
 
-    val tags = getTagsFromJsonFile()
-
-    val filters: @Composable () -> Unit = {
-        DropDownMenuWithItems(
-            label = "Kategorie",
-            options = listOf("Muzyka", "Opinie"),
-            onItemSelected = { category ->
-                postViewModel.setSelectedCategory(category)
-            }
-        )
-        DropDownMenuWithItems(
-            label = "Sortowanie",
-            options = listOf("Najnowsze", "Najstarsze"),
-            onItemSelected = { sortingOption ->
-                postViewModel.setSelectedSortingOption(sortingOption)
-            }
-        )
-    }
-
-    fun togglePostCreation() {
-        if (isCreatingPost) {
-            showDialog = true
-        } else {
-            isCreatingPost = true
+        is ForumScreenNavigation.PostDetail -> {
+            val postId = (currentScreen as ForumScreenNavigation.PostDetail).postId
+            PostDetailView(
+                postId = postId,
+                postViewModel = postViewModel,
+                userViewModel = userViewModel,
+                commentViewModel = commentViewModel,
+                onBack = { currentScreen = ForumScreenNavigation.PostList },
+                likeManager = likeManager
+            )
         }
     }
+}
 
+@Composable
+fun ForumContent(
+    postViewModel: PostViewModel,
+    userViewModel: UserViewModel,
+    commentViewModel: CommentViewModel,
+    onNavigateToCreate: () -> Unit,
+    onNavigateToDetail: (PostModel) -> Unit
+) {
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
+            .fillMaxSize()
             .background(colors.backgroundGrayColor)
     ) {
         RowWithSearchBar(
-            "Wyszukaj wątki",
-            onSearchTextChanged = onSearchTextChanged,
-            onChangeContent = {
-                togglePostCreation()
+            placeholderText = "Wyszukaj wątki",
+            onSearchTextChanged = { query ->
+                postViewModel.filterPosts(query)
             },
-            filters = filters,
-            tags = tags
+            onChangeContent = onNavigateToCreate,
+            filters = {
+                DropDownMenuWithItems(
+                    label = "Kategorie",
+                    options = listOf("Muzyka", "Opinie"),
+                    onItemSelected = { category ->
+                        postViewModel.setSelectedCategory(category)
+                    }
+                )
+                DropDownMenuWithItems(
+                    label = "Sortowanie",
+                    options = listOf("Najnowsze", "Najstarsze"),
+                    onItemSelected = { sortingOption ->
+                        postViewModel.setSelectedSortingOption(sortingOption)
+                    }
+                )
+            }
         )
+
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight()
+                .fillMaxSize()
                 .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
                 .background(colors.backgroundWhiteColor)
         ) {
-            when {
-                isCreatingPost -> {
-                    CreateNewPost(
-                        onPostCreated = { isCreatingPost = false },
-                        forumService = forumService
-                    )
-                }
-
-                selectedPost != null -> {
-                    PostDetailView(
-                        postId = selectedPost!!.postId,
-                        onBack = { selectedPost = null },
-                        postViewModel = postViewModel,
-                        userViewModel = userViewModel,
-                        commentViewModel = commentViewModel
-                    )
-                }
-
-                else -> {
-                    MainContentWithForum(
-                        onPostClick = { post ->
-                            selectedPost = post
-                        },
-                        postViewModel = postViewModel,
-                        userViewModel = userViewModel,
-                        commentViewModel = commentViewModel
-                    )
-                }
-            }
+            MainContentWithForum(
+                onPostClick = onNavigateToDetail,
+                postViewModel = postViewModel,
+                userViewModel = userViewModel,
+                commentViewModel = commentViewModel
+            )
         }
     }
+}
+
+@Composable
+fun CreatePostScreen(
+    createPostViewModel: CreatePostViewModel,
+    userViewModel: UserViewModel,
+    onNavigateBack: () -> Unit
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(colors.backgroundWhiteColor)
+    ) {
+        CustomTopAppBar(
+            title = "Nowy post",
+            onNavigateBack = onNavigateBack
+        )
+
+        CreateNewPost(
+            onPostCreated = onNavigateBack,
+            viewModel = createPostViewModel,
+            userViewModel = userViewModel
+        )
+    }
+
     if (showDialog) {
         ShowDialogAlert(
             onConfirm = {
-                isCreatingPost = false
                 showDialog = false
+                onNavigateBack()
             },
-            onDismiss = {
-                showDialog = false
-            },
+            onDismiss = { showDialog = false },
             contentQuestion = "Czy na pewno chcesz anulować wprowadzanie nowego postu?"
         )
     }
@@ -167,7 +202,8 @@ fun MainContentWithForum(
     postViewModel: PostViewModel,
     userViewModel: UserViewModel,
     commentViewModel: CommentViewModel,
-) {
+
+    ) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -236,6 +272,8 @@ fun PostListView(
 ) {
     val uiState by postViewModel.uiState.collectAsState()
     val isLoadingMore by postViewModel.isLoadingMore.collectAsState()
+    val filteredPosts by postViewModel.filteredPosts.collectAsState()
+    val categoryNames by postViewModel.categoryNames.collectAsState()
 
     when (uiState) {
         is UiState.Loading -> {
@@ -253,30 +291,31 @@ fun PostListView(
         is UiState.Success -> {
             val postsWithCategories = (uiState as UiState.Success).posts
 
-            if (postsWithCategories.isEmpty()) {
+            if (filteredPosts.isEmpty() || postsWithCategories.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "Brak dostępnych postów")
+                    Text(text = "Brak postów do wyświetlenia")
                 }
             } else {
                 LazyColumn {
-                    itemsIndexed(postsWithCategories) { index, postsWithCategory ->
+                    itemsIndexed(filteredPosts.distinct()) { index, post ->
 
-                        LaunchedEffect(postsWithCategory.post.postId) {
-                            commentViewModel.loadComments(postsWithCategory.post.postId)
+                        LaunchedEffect(post.postId) {
+                            commentViewModel.loadComments(post.postId)
+                            postViewModel.fetchCategoryName(post.categoryId)
                         }
 
                         val commentState by commentViewModel.getCommentsStateForPost(
-                            postsWithCategory.post.postId
+                            post.postId
                         ).collectAsState()
 
                         val lastComment =
-                            commentViewModel.getLastCommentForPost(postsWithCategory.post.postId)
+                            commentViewModel.getLastCommentForPost(post.postId)
 
                         Column {
                             PostModelItem(
-                                post = postsWithCategory.post,
-                                categoryName = postsWithCategory.categoryName,
-                                onClick = { onPostClick(postsWithCategory.post) },
+                                post = post,
+                                categoryName = categoryNames[post.categoryId] ?: "Unknown Category",
+                                onClick = { onPostClick(post) },
                                 userViewModel = userViewModel,
                                 commentCount = commentState.totalCount,
                                 isLoadingComments = commentState.isLoading,

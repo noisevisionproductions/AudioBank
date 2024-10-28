@@ -10,7 +10,7 @@ import androidx.lifecycle.ViewModelProvider
 import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.auth.LoginViewModel
 import org.noisevisionproductions.samplelibrary.auth.LoginViewModelFactory
-import org.noisevisionproductions.samplelibrary.composeUI.screens.account.LoginScreen
+import org.noisevisionproductions.samplelibrary.composeUI.screens.loginAndRegister.LoginScreen
 
 class LoginActivity : AppCompatActivity() {
     private lateinit var authService: AuthService

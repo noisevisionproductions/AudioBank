@@ -1,7 +1,7 @@
 package org.noisevisionproductions.samplelibrary.auth
 
 import androidx.lifecycle.ViewModel
-import org.noisevisionproductions.samplelibrary.auth.validation.ValidationResult
+import org.noisevisionproductions.samplelibrary.errors.validation.ValidationResult
 
 actual abstract class BaseAuthViewModel : ViewModel() {
     protected actual fun validateEmail(email: String): ValidationResult {

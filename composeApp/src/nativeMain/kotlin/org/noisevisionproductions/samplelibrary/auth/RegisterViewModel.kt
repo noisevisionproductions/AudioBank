@@ -2,7 +2,7 @@ package org.noisevisionproductions.samplelibrary.auth
 
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.StateFlow
-import org.noisevisionproductions.samplelibrary.auth.validation.RegisterFormState
+import org.noisevisionproductions.samplelibrary.errors.validation.RegisterFormState
 
 actual class RegisterViewModel actual constructor(authService: AuthService) :
     ViewModel() {

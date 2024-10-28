@@ -1,7 +1,7 @@
 package org.noisevisionproductions.samplelibrary.auth
 
 import kotlinx.coroutines.flow.StateFlow
-import org.noisevisionproductions.samplelibrary.auth.validation.RegisterFormState
+import org.noisevisionproductions.samplelibrary.errors.validation.RegisterFormState
 
 expect class RegisterViewModel(authService: AuthService) :
     BaseAuthViewModel {

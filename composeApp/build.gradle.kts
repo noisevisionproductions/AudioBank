@@ -50,24 +50,23 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.appcompat)
+            implementation(libs.coil.compose)
             runtimeOnly(libs.androidx.fragment.ktx)
+
             // Azure Storage and components for XML
-            implementation("com.azure:azure-storage-blob:12.28.0") {
-                exclude(group = "io.netty", module = "netty-transport-native-epoll")
-                exclude(group = "io.netty", module = "netty-tcnative-boringssl-static")
-            }
+
             implementation(libs.woodstox.core)
             implementation(libs.stax.api)
-            implementation(libs.azure.cosmos)
-            implementation(libs.retrofit)
-            implementation(libs.converter.gson)
-            implementation(libs.logging.interceptor)
             // Firebase auth
             implementation(libs.firebase.auth.ktx)
 
             // Firebase Firestore
             implementation(project.dependencies.platform(libs.firebase.bom))
             implementation(libs.firebase.firestore.ktx)
+
+            // Firebase Storage
+            implementation(libs.google.firebase.storage.v1102)
+            implementation(libs.firebase.appcheck.debug)
 
         }
 
@@ -136,6 +135,5 @@ android {
 }
 dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
 }
 

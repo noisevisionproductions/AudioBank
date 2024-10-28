@@ -26,6 +26,7 @@ azureCosmos = "4.63.3"
 azureStorageBlob = "12.28.0"
 azureStorageBlobVersion = "12.28.0"
 cloudinaryAndroid = "2.5.0"
+coilCompose = "2.7.0"
 compose-plugin = "1.6.11"
 converterGson = "2.11.0"
 core = "2.5"
@@ -37,6 +38,7 @@ firebaseStorage = "21.0.1"
 foundationLayout = "1.7.3"
 fragmentKtx = "1.8.4"
 googleAuthLibraryCredentials = "1.27.0"
+googleFirebaseStorage = "11.0.2"
 jakartaXmlBindApi = "4.0.2"
 junit = "4.13.2"
 kotestFrameworkEngine = "5.5.5"
@@ -67,6 +69,8 @@ woodstoxCore = "7.0.0"
 assertk = "0.28.1"
 coreKtx = "1.6.1"
 composeTest = "1.7.3"
+firebaseAppcheckDebug = "18.0.0"
+material3Jvmstubs = "1.4.0-alpha02"
 
 [libraries]
 androidx-activity-compose-v192 = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -89,6 +93,7 @@ azure-storage-blob = { module = "com.azure:azure-storage-blob", version.ref = "a
 azure-storage-blob-v12110 = { module = "com.azure:azure-storage-blob", version.ref = "azureStorageBlobVersion" }
 bson-kotlin = { module = "org.mongodb:bson-kotlin", version.ref = "mongodbDriverSync" }
 cloudinary-android = { module = "com.cloudinary:cloudinary-android", version.ref = "cloudinaryAndroid" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
 firebase-analytics-ktx = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebaseAnalyticsKtx" }
 firebase-auth-ktx = { module = "com.google.firebase:firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
@@ -98,6 +103,7 @@ firebase-firestore-ktx = { module = "com.google.firebase:firebase-firestore-ktx"
 firebase-storage = { module = "com.google.firebase:firebase-storage", version.ref = "firebaseStorage" }
 google-auth-library-credentials = { module = "com.google.auth:google-auth-library-credentials", version.ref = "googleAuthLibraryCredentials" }
 google-auth-library-oauth2-http = { module = "com.google.auth:google-auth-library-oauth2-http", version.ref = "googleAuthLibraryCredentials" }
+google-firebase-storage-v1102 = { module = "com.google.firebase:firebase-storage", version.ref = "googleFirebaseStorage" }
 jakarta-xml-bind-api = { module = "jakarta.xml.bind:jakarta.xml.bind-api", version.ref = "jakartaXmlBindApi" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotestFrameworkEngine" }
 kotest-framework-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotestFrameworkEngine" }
@@ -149,6 +155,8 @@ assertk = { module = "com.willowtreeapps.assertk:assertk", version.ref = "assert
 compose-ui-test-junit4-android = { module = "androidx.compose.ui:ui-test-junit4-android", version.ref = "composeTest" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "composeTest" }
 core-ktx = { group = "androidx.test", name = "core-ktx", version.ref = "coreKtx" }
+firebase-appcheck-debug = { group = "com.google.firebase", name = "firebase-appcheck-debug", version.ref = "firebaseAppcheckDebug" }
+androidx-material3-jvmstubs = { group = "androidx.compose.material3", name = "material3-jvmstubs", version.ref = "material3Jvmstubs" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -9,7 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.auth.RegisterViewModel
-import org.noisevisionproductions.samplelibrary.composeUI.screens.account.RegisterScreen
+import org.noisevisionproductions.samplelibrary.composeUI.screens.loginAndRegister.RegisterScreen
 import org.noisevisionproductions.samplelibrary.auth.RegisterViewModelFactory
 
 class RegisterActivity : AppCompatActivity() {

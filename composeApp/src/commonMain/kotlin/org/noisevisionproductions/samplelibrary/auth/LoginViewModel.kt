@@ -1,7 +1,7 @@
 package org.noisevisionproductions.samplelibrary.auth
 
 import kotlinx.coroutines.flow.StateFlow
-import org.noisevisionproductions.samplelibrary.auth.validation.LoginFormState
+import org.noisevisionproductions.samplelibrary.errors.validation.LoginFormState
 
 expect class LoginViewModel(authService: AuthService) : BaseAuthViewModel {
     val formState: StateFlow<LoginFormState>

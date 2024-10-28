@@ -12,3 +12,7 @@ actual fun PropertiesMenu(
     alignRight: Boolean
 ) {
 }
+
+@Composable
+actual fun PlatformAvatarImage(avatarPath: String) {
+}

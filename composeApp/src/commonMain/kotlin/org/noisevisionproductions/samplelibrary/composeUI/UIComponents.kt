@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -25,17 +27,24 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.LocalTextStyle
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
@@ -53,6 +62,8 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -347,12 +358,101 @@ fun ShowDialogAlert(onConfirm: () -> Unit, onDismiss: () -> Unit, contentQuestio
 }
 
 @Composable
+fun CreateErrorMessage(
+    errorMessage: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ErrorIcon()
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = errorMessage,
+            color = Color.Red,
+            modifier = Modifier
+                .padding(start = 5.dp)
+                .weight(0.05f),
+            fontSize = 16.sp,
+            style = MaterialTheme.typography.h6
+        )
+    }
+}
+
+@Composable
 fun ErrorIcon() {
     Image(
         painter = painterResource(Res.drawable.icon_error),
         contentDescription = "Error",
         colorFilter = ColorFilter.tint(Color.Red),
         modifier = Modifier.size(15.dp)
+    )
+}
+
+@Composable
+fun CustomOutlinedTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    isError: Boolean = false,
+    imeAction: ImeAction = ImeAction.Done,
+    isEnabled: Boolean = true,
+    keyboardType: KeyboardType = KeyboardType.Text,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.body1
+            )
+        },
+        singleLine = true,
+        isError = isError,
+        enabled = isEnabled,
+        modifier = modifier.fillMaxWidth(),
+        colors = TextFieldDefaults.outlinedTextFieldColors(
+            backgroundColor = colors.backgroundWhiteColor,
+            focusedBorderColor = colors.textColorMain,
+            unfocusedBorderColor = colors.textColorMain,
+            focusedLabelColor = colors.textColorMain,
+            unfocusedLabelColor = colors.textColorMain,
+            cursorColor = colors.textColorMain
+        ),
+        keyboardOptions = KeyboardOptions(
+            imeAction = imeAction
+        ),
+        keyboardActions = keyboardActions,
+        shape = RoundedCornerShape(30.dp)
+    )
+}
+
+@Composable
+fun CustomTopAppBar(
+    title: String,
+    onNavigateBack: (() -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {}
+) {
+    TopAppBar(
+        title = { Text(title) },
+        navigationIcon = onNavigateBack?.let {
+            {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Powrót do porzedniego menu"
+                    )
+                }
+            }
+        },
+        actions = actions,
+        backgroundColor = colors.primaryBackgroundColor,
+        contentColor = colors.textColorMain
     )
 }
 
@@ -365,3 +465,6 @@ expect fun PropertiesMenu(
     onOptionSelected: (String) -> Unit,
     alignRight: Boolean
 )
+
+@Composable
+expect fun PlatformAvatarImage(avatarPath: String)

@@ -8,5 +8,7 @@ data class CommentModel(
     val username: String = "",
     val content: String = "",
     val timestamp: String = "",
-    var replies: List<CommentModel> = emptyList()
+    var replies: List<CommentModel> = emptyList(),
+    var likesCount: Int = 0,
+    var isLiked: Boolean = false
 )

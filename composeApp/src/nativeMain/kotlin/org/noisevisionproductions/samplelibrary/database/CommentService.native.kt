@@ -2,7 +2,7 @@ package org.noisevisionproductions.samplelibrary.database
 
 import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
 
-actual class CommentService {
+actual class CommentRepository {
     actual suspend fun addCommentToPost(
         postId: String,
         comment: CommentModel

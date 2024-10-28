@@ -6,8 +6,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.noisevisionproductions.samplelibrary.auth.validation.LoginFormState
-import org.noisevisionproductions.samplelibrary.auth.validation.ValidationResult
+import org.noisevisionproductions.samplelibrary.errors.validation.LoginFormState
+import org.noisevisionproductions.samplelibrary.errors.validation.ValidationResult
 
 actual class LoginViewModel actual constructor(private val authService: AuthService) :
     BaseAuthViewModel() {

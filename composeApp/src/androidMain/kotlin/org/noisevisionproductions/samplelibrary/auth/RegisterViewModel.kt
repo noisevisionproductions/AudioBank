@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.noisevisionproductions.samplelibrary.auth.validation.RegisterFormState
-import org.noisevisionproductions.samplelibrary.auth.validation.ValidationResult
+import org.noisevisionproductions.samplelibrary.errors.validation.RegisterFormState
+import org.noisevisionproductions.samplelibrary.errors.validation.ValidationResult
 
 actual class RegisterViewModel actual constructor(private val authService: AuthService) :
     BaseAuthViewModel() {

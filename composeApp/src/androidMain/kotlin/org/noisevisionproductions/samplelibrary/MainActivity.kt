@@ -6,24 +6,38 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.firebase.FirebaseApp
 import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.composeUI.screens.LoginActivity
-import org.noisevisionproductions.samplelibrary.database.AzureStorageClient
+import org.noisevisionproductions.samplelibrary.composeUI.screens.SamplesActivity
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadNewSound
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadSoundViewModel
 import org.noisevisionproductions.samplelibrary.interfaces.AppContext
 import org.noisevisionproductions.samplelibrary.interfaces.downloadAndSaveFile
+import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
 
 class MainActivity : ComponentActivity() {
     var pendingFileUrl: String? = null
     var pendingFileName: String? = null
     lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    private lateinit var authService: AuthService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val intent = Intent(this, LoginActivity::class.java)
-        startActivity(intent)
+        authService = AuthService()
+
+
+        if (authService.isUserLoggedIn()) {
+            val mainMenuIntent = Intent(this, SamplesActivity::class.java)
+            startActivity(mainMenuIntent)
+        } else {
+            val loginIntent = Intent(this, LoginActivity::class.java)
+            startActivity(loginIntent)
+        }
+
         finish()
         setupPermissionLauncher()
 
@@ -63,12 +77,13 @@ class SampleLibrary : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
         appContext = applicationContext
+
         AppContext.setUp(appContext)
         FirebaseApp.initializeApp(this)
 
-        AzureStorageClient.loadAzureConnections(this)
-        AzureStorageClient.validateConnections()
+
 
         authService = AuthService()
     }

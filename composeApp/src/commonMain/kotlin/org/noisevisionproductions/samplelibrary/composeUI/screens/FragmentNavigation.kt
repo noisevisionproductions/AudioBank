@@ -26,16 +26,77 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.ForumFragment
+import org.noisevisionproductions.samplelibrary.auth.AuthService
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.AccountFragmentNavigationHost
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.ForumNavigationHost
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeService
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.DynamicListViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.SoundNavigationHost
+import org.noisevisionproductions.samplelibrary.database.CommentRepository
+import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
+import org.noisevisionproductions.samplelibrary.database.ForumRepository
+import org.noisevisionproductions.samplelibrary.database.UserRepository
+import org.noisevisionproductions.samplelibrary.errors.ErrorHandler
+import org.noisevisionproductions.samplelibrary.errors.ErrorLogger
+import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.ErrorDialogManager
+import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedErrorViewModel
+import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
+import org.noisevisionproductions.samplelibrary.utils.ViewModelFactory
+import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerRepositoryImpl
+import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
 
 @Composable
-fun BarWithFragmentsList() {
+fun BarWithFragmentsList(
+    dynamicListViewModel: DynamicListViewModel,
+    filePicker: FilePicker,
+    sharedErrorViewModel: SharedErrorViewModel
+) {
+    val errorDialogManager = remember { ErrorDialogManager(sharedErrorViewModel) }
+
+    errorDialogManager.ShowErrorDialog()
+
+    val errorLogger = ErrorLogger()
+    val errorHandler = remember { ErrorHandler(errorLogger = errorLogger) }
+    val musicPlayerService = remember { MusicPlayerService() }
+    val avatarPickerRepositoryImpl = remember { AvatarPickerRepositoryImpl(filePicker) }
+    val likeManager = remember { LikeManager() }
+    val userRepository = remember { UserRepository() }
+    val authService = remember { AuthService() }
+    val likeService = remember { LikeService() }
+    val forumRepository = remember { ForumRepository() }
+    val commentRepository = remember { CommentRepository() }
+    val firebaseStorageRepository = remember { FirebaseStorageRepository() }
+
+    val viewModelFactory = remember {
+        ViewModelFactory(
+            authService,
+            forumRepository,
+            likeManager,
+            commentRepository,
+            userRepository,
+            likeService,
+            firebaseStorageRepository,
+            sharedErrorViewModel,
+            errorHandler,
+            musicPlayerService,
+            avatarPickerRepositoryImpl
+        )
+    }
+    val uploadSoundViewModel = remember { viewModelFactory.uploadSoundViewModel() }
+    val userViewModel = remember { viewModelFactory.userViewModel() }
+    val postViewModel = remember { viewModelFactory.createPostViewModel() }
+    val commentViewModel = remember { viewModelFactory.createCommentViewModel() }
+    val musicPlayerViewModel = remember { viewModelFactory.musicPlayerViewModel() }
+    val accountViewModel = remember { viewModelFactory.accountViewModel() }
+
     Surface {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colors.backgroundWhiteColor)
         ) {
+
             Spacer(// miejsce nad paskiem
                 modifier = Modifier
                     .height(100.dp)
@@ -43,7 +104,7 @@ fun BarWithFragmentsList() {
                     .background(color = colors.primaryBackgroundColor)
             )
             var currentScreen by remember { mutableStateOf(FragmentsTabs.Tab1) }
-            val tabTitles = listOf("Dźwięki & pętle", "acapella", "Forum", "Czat", "Pomoc")
+            val tabTitles = listOf("Dźwięki & pętle", "acapella", "Forum", "Pomoc")
 
             // Pasek wyboru fragmentów
             Row(
@@ -62,7 +123,6 @@ fun BarWithFragmentsList() {
                             1 -> currentScreen == FragmentsTabs.Tab2
                             2 -> currentScreen == FragmentsTabs.Tab3
                             3 -> currentScreen == FragmentsTabs.Tab4
-                            4 -> currentScreen == FragmentsTabs.Tab5
                             else -> false
                         },
                         onClick = {
@@ -71,7 +131,6 @@ fun BarWithFragmentsList() {
                                 1 -> FragmentsTabs.Tab2
                                 2 -> FragmentsTabs.Tab3
                                 3 -> FragmentsTabs.Tab4
-                                4 -> FragmentsTabs.Tab5
                                 else -> FragmentsTabs.Tab1
                             }
                         },
@@ -80,14 +139,42 @@ fun BarWithFragmentsList() {
                     )
                 }
             }
-            when (currentScreen) {
-                FragmentsTabs.Tab1 -> /*DynamicListWithSamples("samples")*/ ForumFragment()
-                FragmentsTabs.Tab2 -> DynamicListWithSamples("acapella")
-                FragmentsTabs.Tab3 -> ForumFragment()
-                FragmentsTabs.Tab4 -> DynamicListWithSamples("acapella")
-                FragmentsTabs.Tab5 -> DynamicListWithSamples("acapella")
-            }
 
+            when (currentScreen) {
+                FragmentsTabs.Tab1 -> {
+                    dynamicListViewModel.updateDirectoryPath("samples")
+                    SoundNavigationHost(
+                        dynamicListViewModel = dynamicListViewModel,
+                        filePicker = filePicker,
+                        uploadSoundViewModel = uploadSoundViewModel,
+                        musicPlayerViewModel = musicPlayerViewModel
+                    )
+                }
+
+                FragmentsTabs.Tab2 -> {
+                    dynamicListViewModel.updateDirectoryPath("acapella")
+                    SoundNavigationHost(
+                        dynamicListViewModel = dynamicListViewModel,
+                        filePicker = filePicker,
+                        uploadSoundViewModel = uploadSoundViewModel,
+                        musicPlayerViewModel = musicPlayerViewModel
+                    )
+                }
+
+                FragmentsTabs.Tab3 -> ForumNavigationHost(
+                    postViewModel = postViewModel,
+                    userViewModel = userViewModel,
+                    commentViewModel = commentViewModel,
+                    authService = authService,
+                    forumRepository = forumRepository,
+                    likeManager = likeManager
+                )
+
+                else -> AccountFragmentNavigationHost(
+                    accountViewModel = accountViewModel,
+                    errorDialogManager = errorDialogManager
+                )
+            }
         }
     }
 }
@@ -124,3 +211,4 @@ fun TabItem(
         )
     }
 }
+
