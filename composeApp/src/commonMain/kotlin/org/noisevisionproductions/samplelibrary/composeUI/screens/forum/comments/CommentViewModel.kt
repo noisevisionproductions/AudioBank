@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
-import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeService
+import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.database.CommentRepository
 import org.noisevisionproductions.samplelibrary.errors.AppError
 import org.noisevisionproductions.samplelibrary.errors.ErrorHandler
@@ -29,7 +29,7 @@ class CommentViewModel(
     private val commentRepository: CommentRepository,
     private val authService: AuthService,
     private val likeManager: LikeManager,
-    private val likeService: LikeService,
+    private val likeRepository: LikeRepository,
     private val userRepository: UserRepository,
     private val sharedErrorViewModel: SharedErrorViewModel,
     private val errorHandler: ErrorHandler
@@ -77,7 +77,7 @@ class CommentViewModel(
         postId: String,
         comment: CommentModel
     ) {
-        val isLiked = likeService.isCommentLiked(comment.commentId)
+        val isLiked = likeRepository.isCommentLiked(comment.commentId)
         likeManager.initializeCommentLikeState(
             postId,
             comment.commentId,
@@ -117,7 +117,7 @@ class CommentViewModel(
             )
 
             try {
-                val result = likeService.toggleLikeComment(commentId)
+                val result = likeRepository.toggleLikeComment(commentId)
                 if (result.isFailure) {
                     likeManager.updateCommentLike(
                         postId,

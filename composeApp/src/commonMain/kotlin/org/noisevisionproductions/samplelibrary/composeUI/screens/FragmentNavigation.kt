@@ -17,6 +17,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,7 +32,7 @@ import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.AccountFragmentNavigationHost
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.ForumNavigationHost
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
-import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeService
+import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.DynamicListViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.SoundNavigationHost
 import org.noisevisionproductions.samplelibrary.database.CommentRepository
@@ -53,17 +55,16 @@ fun BarWithFragmentsList(
     sharedErrorViewModel: SharedErrorViewModel
 ) {
     val errorDialogManager = remember { ErrorDialogManager(sharedErrorViewModel) }
-
-    errorDialogManager.ShowErrorDialog()
-
     val errorLogger = ErrorLogger()
     val errorHandler = remember { ErrorHandler(errorLogger = errorLogger) }
+    errorDialogManager.ShowErrorDialog()
+
     val musicPlayerService = remember { MusicPlayerService() }
     val avatarPickerRepositoryImpl = remember { AvatarPickerRepositoryImpl(filePicker) }
     val likeManager = remember { LikeManager() }
     val userRepository = remember { UserRepository() }
     val authService = remember { AuthService() }
-    val likeService = remember { LikeService() }
+    val likeRepository = remember { LikeRepository() }
     val forumRepository = remember { ForumRepository() }
     val commentRepository = remember { CommentRepository() }
     val firebaseStorageRepository = remember { FirebaseStorageRepository() }
@@ -75,7 +76,7 @@ fun BarWithFragmentsList(
             likeManager,
             commentRepository,
             userRepository,
-            likeService,
+            likeRepository,
             firebaseStorageRepository,
             sharedErrorViewModel,
             errorHandler,
@@ -83,12 +84,20 @@ fun BarWithFragmentsList(
             avatarPickerRepositoryImpl
         )
     }
+    val navigationViewModel = remember { viewModelFactory.navigationViewModel() }
     val uploadSoundViewModel = remember { viewModelFactory.uploadSoundViewModel() }
     val userViewModel = remember { viewModelFactory.userViewModel() }
     val postViewModel = remember { viewModelFactory.createPostViewModel() }
     val commentViewModel = remember { viewModelFactory.createCommentViewModel() }
     val musicPlayerViewModel = remember { viewModelFactory.musicPlayerViewModel() }
     val accountViewModel = remember { viewModelFactory.accountViewModel() }
+
+    val currentTab by navigationViewModel.selectedTab.collectAsState()
+    var currentScreen by remember { mutableStateOf(FragmentsTabs.Tab1) }
+
+    LaunchedEffect(currentTab) {
+        currentScreen = currentTab
+    }
 
     Surface {
         Column(
@@ -103,7 +112,6 @@ fun BarWithFragmentsList(
                     .fillMaxWidth()
                     .background(color = colors.primaryBackgroundColor)
             )
-            var currentScreen by remember { mutableStateOf(FragmentsTabs.Tab1) }
             val tabTitles = listOf("Dźwięki & pętle", "acapella", "Forum", "Pomoc")
 
             // Pasek wyboru fragmentów
@@ -126,13 +134,14 @@ fun BarWithFragmentsList(
                             else -> false
                         },
                         onClick = {
-                            currentScreen = when (i) {
+                            val newTab = when (i) {
                                 0 -> FragmentsTabs.Tab1
                                 1 -> FragmentsTabs.Tab2
                                 2 -> FragmentsTabs.Tab3
                                 3 -> FragmentsTabs.Tab4
                                 else -> FragmentsTabs.Tab1
                             }
+                            navigationViewModel.updateSelectedTab(newTab)
                         },
                         isFirst = i == 0,
                         isLast = i == tabTitles.size - 1
@@ -167,12 +176,14 @@ fun BarWithFragmentsList(
                     commentViewModel = commentViewModel,
                     authService = authService,
                     forumRepository = forumRepository,
-                    likeManager = likeManager
+                    likeManager = likeManager,
+                    navigationViewModel = navigationViewModel
                 )
 
                 else -> AccountFragmentNavigationHost(
                     accountViewModel = accountViewModel,
-                    errorDialogManager = errorDialogManager
+                    errorDialogManager = errorDialogManager,
+                    navigationViewModel = navigationViewModel
                 )
             }
         }

@@ -44,6 +44,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.account.accoun
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.accountSettings.AccountViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.ErrorDialogManager
+import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_account_settings
 import samplelibrary.composeapp.generated.resources.icon_groups
@@ -55,7 +56,8 @@ import samplelibrary.composeapp.generated.resources.icon_sounds_option
 @Composable
 fun AccountFragmentNavigationHost(
     accountViewModel: AccountViewModel,
-    errorDialogManager: ErrorDialogManager
+    errorDialogManager: ErrorDialogManager,
+    navigationViewModel: NavigationViewModel
 ) {
     var currentScreen by remember {
         mutableStateOf<AccountScreenNavigation>(
@@ -77,7 +79,9 @@ fun AccountFragmentNavigationHost(
                 accountViewModel = accountViewModel,
                 errorDialogManager = errorDialogManager,
                 onNavigateBack = { currentScreen = AccountScreenNavigation.AccountFragment },
-                onPostClick = {}
+                onPostClick = { postId ->
+                    navigationViewModel.navigateToPost(postId)
+                }
             )
         }
     }
@@ -85,7 +89,7 @@ fun AccountFragmentNavigationHost(
 
 @Composable
 fun AccountFragment(
-    onNavigate: (AccountScreenNavigation) -> Unit
+    onNavigate: (AccountScreenNavigation) -> Unit,
 ) {
     val searchText by remember { mutableStateOf("") }
 
@@ -122,13 +126,17 @@ fun AccountFragment(
                 .clip(RoundedCornerShape(topStart = 25.dp, topEnd = 25.dp))
                 .background(colors.backgroundWhiteColor)
         ) {
-            MainContentWithOptions(onNavigate = onNavigate)
+            MainContentWithOptions(
+                onNavigate = onNavigate,
+            )
         }
     }
 }
 
 @Composable
-fun MainContentWithOptions(onNavigate: (AccountScreenNavigation) -> Unit) {
+fun MainContentWithOptions(
+    onNavigate: (AccountScreenNavigation) -> Unit,
+) {
     val options = listOf(
         "Ustawienia konta" to Res.drawable.icon_account_settings,
         "Login i Hasło" to Res.drawable.icon_key,

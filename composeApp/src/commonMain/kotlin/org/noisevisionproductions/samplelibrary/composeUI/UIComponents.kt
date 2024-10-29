@@ -439,7 +439,13 @@ fun CustomTopAppBar(
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(
-        title = { Text(title) },
+        title = {
+            Text(
+                text = title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        },
         navigationIcon = onNavigateBack?.let {
             {
                 IconButton(onClick = onNavigateBack) {

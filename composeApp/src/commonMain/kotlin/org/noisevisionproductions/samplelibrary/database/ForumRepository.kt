@@ -1,7 +1,9 @@
 package org.noisevisionproductions.samplelibrary.database
 
 import org.noisevisionproductions.samplelibrary.utils.models.CategoryModel
+import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostWithCategory
+import samplelibrary.composeapp.generated.resources.Res
 
 expect class ForumRepository() {
     suspend fun createPost(
@@ -21,4 +23,5 @@ expect class ForumRepository() {
         selectedCategoryId: String?,
         selectedSortingOption: String?
     ): Result<List<PostWithCategory>>
+    suspend fun getPost(postId: String): Result<PostModel>
 }

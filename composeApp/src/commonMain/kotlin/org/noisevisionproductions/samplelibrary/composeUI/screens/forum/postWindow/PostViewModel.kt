@@ -3,16 +3,13 @@ package org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
-import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeService
+import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
 import org.noisevisionproductions.samplelibrary.utils.UiState
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
@@ -21,7 +18,7 @@ import org.noisevisionproductions.samplelibrary.utils.models.PostWithCategory
 class PostViewModel(
     private val forumRepository: ForumRepository,
     private val likeManager: LikeManager,
-    private val likeService: LikeService
+    private val likeRepository: LikeRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -48,13 +45,17 @@ class PostViewModel(
     private val _categoryNames = MutableStateFlow<Map<String, String>>(emptyMap())
     val categoryNames: StateFlow<Map<String, String>> = _categoryNames
 
+    private val _individualPost = MutableStateFlow<PostModel?>(null)
+    private val individualPost: StateFlow<PostModel?> = _individualPost.asStateFlow()
+
     private val _posts = MutableStateFlow<List<PostModel>>(emptyList())
-    private val posts: StateFlow<List<PostModel>> = _posts
 
     private val _filteredPosts = MutableStateFlow<List<PostModel>>(emptyList())
     val filteredPosts: StateFlow<List<PostModel>> = _filteredPosts
 
     private val _searchQuery = MutableStateFlow("")
+
+    private val postsCache = mutableMapOf<String, PostModel?>()
 
     private var lastLoadedPostId: String? = null
     private var isLoading = false
@@ -96,13 +97,32 @@ class PostViewModel(
     }
 
     fun getPostById(postId: String): StateFlow<PostModel?> {
-        return posts.map { postList ->
-            postList.find { it.postId == postId }
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.Lazily,
-            null
-        )
+        viewModelScope.launch {
+            // First check the cache and current posts
+            val cachedPost = postsCache[postId]
+            val currentPost = _posts.value.find { it.postId == postId }
+
+            when {
+                cachedPost != null -> _individualPost.value = cachedPost
+                currentPost != null -> _individualPost.value = currentPost
+                else -> {
+                    // If not found, load from repository
+                    _individualPost.value = null // Clear previous post while loading
+                    forumRepository.getPost(postId)
+                        .onSuccess { post ->
+                            postsCache[postId] = post
+                            _individualPost.value = post
+                            // Initialize like state
+                            val isLiked = likeRepository.isPostLiked(post.postId)
+                            likeManager.initializePostLikeState(post, isLiked)
+                        }
+                        .onFailure { error ->
+                            _uiState.value = UiState.Error("Error loading post: ${error.message}")
+                        }
+                }
+            }
+        }
+        return individualPost
     }
 
     private fun loadPosts() {
@@ -115,8 +135,8 @@ class PostViewModel(
             result.onSuccess { postsWithCategories ->
                 val updatedPosts = postsWithCategories.map { postWithCategories ->
                     val post = postWithCategories.post
-                    val isLiked = likeService.isPostLiked(post.postId)
-                    likeManager.initializePostLikeState(post.postId, isLiked, post.likesCount)
+                    val isLiked = likeRepository.isPostLiked(post.postId)
+                    likeManager.initializePostLikeState(post, isLiked)
                     post.copy(isLiked = isLiked)
                 }
                 _uiState.value = UiState.Success(postsWithCategories)
@@ -129,10 +149,11 @@ class PostViewModel(
 
     private fun loadMorePosts() {
         if (isLoading || allPostsLoaded) return
-        isLoading = true
-        _isLoadingMore.value = true
 
         viewModelScope.launch {
+            isLoading = true
+            _isLoadingMore.value = true
+
             try {
                 val result = forumRepository.getPostsFromFirestore(
                     lastLoadedPostId,
@@ -140,18 +161,29 @@ class PostViewModel(
                     selectedSortingOption.value
                 )
                 result.onSuccess { postWithCategoriesList ->
+                    if (postWithCategoriesList.isEmpty()) {
+                        allPostsLoaded = true
+                        return@onSuccess
+                    }
+
+                    postWithCategoriesList.forEach {
+                        postsCache[it.post.postId] = it.post
+                    }
 
                     postsWithCategories = postsWithCategories + postWithCategoriesList
 
-                    if (postWithCategoriesList.size < 10) {
-                        allPostsLoaded = true
-                    }
-
                     lastLoadedPostId = postWithCategoriesList.lastOrNull()?.post?.postId
 
-                    _uiState.value = UiState.Success(postsWithCategories)
+                    postWithCategoriesList.forEach { postWithCategory ->
+                        val post = postWithCategory.post
+                        val isLiked = likeRepository.isPostLiked(post.postId)
+                        likeManager.initializePostLikeState(post, isLiked)
+                    }
 
                     _posts.value += postWithCategoriesList.map { it.post }
+                    _uiState.value = UiState.Success(postsWithCategories)
+
+                    allPostsLoaded = postWithCategoriesList.size < 10
                 }
             } catch (e: Exception) {
                 _uiState.value = UiState.Error("Nieoczekiwany błąd: ${e.message}")
@@ -227,36 +259,35 @@ class PostViewModel(
     fun togglePostLike(postId: String) {
         viewModelScope.launch {
             val currentState = likeManager.getPostLikeState(postId)
-            val newLikeState = !(currentState?.isLiked ?: false)
-            val newLikesCount = (currentState?.likesCount ?: 0) + (if (newLikeState) 1 else -1)
+            val newLikeState = !currentState.isLiked
+            val newLikesCount = currentState.likesCount + if (newLikeState) 1 else -1
 
+            // Optimistically update UI
             likeManager.updatePostLike(
                 postId,
                 LikeManager.LikeState(newLikeState, newLikesCount.coerceAtLeast(0))
             )
 
             try {
-                val result = likeService.toggleLikePost(postId)
-                result.onFailure { error ->
-                    // Przywrócenie poprzedniego stanu w przypadku błędu
-                    likeManager.updatePostLike(
-                        postId,
-                        LikeManager.LikeState(
-                            currentState?.isLiked ?: false,
-                            currentState?.likesCount ?: 0
-                        )
-                    )
-                    _uiState.value = UiState.Error("Error toggling like: ${error.message}")
-                }
+                likeRepository.toggleLikePost(postId)
+                    .onSuccess {
+                        // Refresh the actual likes count from server
+                        likeRepository.getPostLikesCount(postId)
+                            .onSuccess { serverLikesCount ->
+                                likeManager.updatePostLike(
+                                    postId,
+                                    LikeManager.LikeState(newLikeState, serverLikesCount)
+                                )
+                            }
+                    }
+                    .onFailure { error ->
+                        // Revert on failure
+                        likeManager.updatePostLike(postId, currentState)
+                        _uiState.value = UiState.Error("Error toggling like: ${error.message}")
+                    }
             } catch (e: Exception) {
-                // Przywrócenie poprzedniego stanu w przypadku wyjątku
-                likeManager.updatePostLike(
-                    postId,
-                    LikeManager.LikeState(
-                        currentState?.isLiked ?: false,
-                        currentState?.likesCount ?: 0
-                    )
-                )
+                // Revert on exception
+                likeManager.updatePostLike(postId, currentState)
                 _uiState.value = UiState.Error("Error toggling like: ${e.message}")
             }
         }

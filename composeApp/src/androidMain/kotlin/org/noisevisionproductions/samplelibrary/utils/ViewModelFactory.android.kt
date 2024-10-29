@@ -7,7 +7,7 @@ import org.noisevisionproductions.samplelibrary.auth.UserViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.accountSettings.AccountViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
-import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeService
+import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWindow.PostViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.mediaPlayer.MusicPlayerViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadSoundViewModel
@@ -19,6 +19,7 @@ import org.noisevisionproductions.samplelibrary.errors.ErrorHandler
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedErrorViewModel
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
 import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerRepositoryImpl
+import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
 
 actual class ViewModelFactory actual constructor(
     private val authService: AuthService,
@@ -26,9 +27,9 @@ actual class ViewModelFactory actual constructor(
     private val likeManager: LikeManager,
     private val commentRepository: CommentRepository,
     private val userRepository: UserRepository,
-    private val likeService: LikeService,
+    private val likeRepository: LikeRepository,
     private val firebaseStorageRepository: FirebaseStorageRepository,
-    private val sharedErrorViewModel: SharedErrorViewModel,
+    private val sharedErrorViewModel: SharedErrorViewModel,/**/
     private val errorHandler: ErrorHandler,
     private val musicPlayerService: MusicPlayerService,
     private val avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl
@@ -36,7 +37,11 @@ actual class ViewModelFactory actual constructor(
 
     // Tworzenie instancji PostViewModel
     actual fun createPostViewModel(): PostViewModel {
-        return PostViewModel(forumRepository, likeManager, likeService)
+        return PostViewModel(
+            forumRepository = forumRepository,
+            likeManager = likeManager,
+            likeRepository = likeRepository
+        )
     }
 
     // Tworzenie instancji CommentViewModel
@@ -45,7 +50,7 @@ actual class ViewModelFactory actual constructor(
             commentRepository,
             authService,
             likeManager,
-            likeService,
+            likeRepository,
             userRepository,
             sharedErrorViewModel,
             errorHandler,
@@ -66,9 +71,17 @@ actual class ViewModelFactory actual constructor(
 
     actual fun accountViewModel(): AccountViewModel {
         return AccountViewModel(
-            userRepository, firebaseStorageRepository, sharedErrorViewModel,
-            avatarPickerRepositoryImpl
+            userRepository = userRepository,
+            firebaseStorageRepository = firebaseStorageRepository,
+            sharedErrorViewModel = sharedErrorViewModel,
+            avatarPickerRepositoryImpl = avatarPickerRepositoryImpl,
+            likeManager = likeManager,
+            forumRepository = forumRepository
         )
+    }
+
+    actual fun navigationViewModel(): NavigationViewModel {
+        return NavigationViewModel()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -80,7 +93,10 @@ actual class ViewModelFactory actual constructor(
             modelClass.isAssignableFrom(UploadSoundViewModel::class.java) -> userViewModel() as T
             modelClass.isAssignableFrom(MusicPlayerViewModel::class.java) -> musicPlayerViewModel() as T
             modelClass.isAssignableFrom(AccountViewModel::class.java) -> accountViewModel() as T
+            modelClass.isAssignableFrom(NavigationViewModel::class.java) -> navigationViewModel() as T
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
     }
+
+
 }

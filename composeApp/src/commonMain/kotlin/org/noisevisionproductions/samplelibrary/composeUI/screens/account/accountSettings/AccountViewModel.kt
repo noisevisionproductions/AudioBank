@@ -3,9 +3,12 @@ package org.noisevisionproductions.samplelibrary.composeUI.screens.account.accou
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
+import org.noisevisionproductions.samplelibrary.database.ForumRepository
 import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
 import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
@@ -14,7 +17,9 @@ import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerReposito
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 
 class AccountViewModel(
+    private val likeManager: LikeManager,
     private val userRepository: UserRepository,
+    private val forumRepository: ForumRepository,
     private val firebaseStorageRepository: FirebaseStorageRepository,
     private val sharedErrorViewModel: SharedErrorViewModel,
     private val avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl
@@ -22,15 +27,28 @@ class AccountViewModel(
     private val _userState = MutableStateFlow<UserState>(UserState.Loading)
     val userState = _userState.asStateFlow()
 
-    private val _selectedImagePath = MutableStateFlow<ByteArray?>(null)
-    val selectedImagePath = _selectedImagePath.asStateFlow()
-
     private val _likedPosts = MutableStateFlow<List<PostModel>>(emptyList())
-    val likedPosts = _likedPosts.asStateFlow()
+    val likedPosts: StateFlow<List<PostModel>> = _likedPosts.asStateFlow()
+
+    private val _createdPosts = MutableStateFlow<List<PostModel>>(emptyList())
+    val createdPosts = _createdPosts.asStateFlow()
 
     init {
+        observeLikedPosts()
         loadUserData()
         loadLikedPosts()
+        loadCreatedPosts()
+    }
+
+    private fun observeLikedPosts() {
+        viewModelScope.launch {
+            likeManager.likedPostsIds.collect { likedPostIds ->
+                val posts = likedPostIds.mapNotNull { postId ->
+                    forumRepository.getPost(postId).getOrNull()
+                }
+                _likedPosts.value = posts
+            }
+        }
     }
 
     private fun loadUserData() {
@@ -54,39 +72,45 @@ class AccountViewModel(
         }
     }
 
-    private fun loadLikedPosts() {
+    private fun loadCreatedPosts() {
         viewModelScope.launch {
             try {
-                val posts = userRepository.getLikedPosts()
-                _likedPosts.value = posts
+                val user = userRepository.getCurrentUser()
+                if (user != null) {
+                    val posts = userRepository.getPostsByIds(user.postIds)
+                    _createdPosts.value = posts
+                }
             } catch (e: Exception) {
                 sharedErrorViewModel.showError(
                     UserErrorInfo(
-                        message = "Nie udało się załadować polubionych postów",
+                        message = "Nie udało się załadować utworzonych postów",
                         actionType = UserErrorAction.RETRY,
-                        errorId = "LOAD_LIKED_POSTS_ERROR",
-                        retryAction = { loadLikedPosts() }
+                        errorId = "LOAD_CREATED_POSTS_ERROR",
+                        retryAction = { loadCreatedPosts() }
                     )
                 )
             }
         }
     }
 
-    fun updateUsername(newUsername: String) {
+    private fun loadLikedPosts() {
         viewModelScope.launch {
-            _userState.value = UserState.Loading
-            try {
-                userRepository.updateUsername(newUsername)
-                loadUserData()
-            } catch (e: Exception) {
-                sharedErrorViewModel.showError(
-                    UserErrorInfo(
-                        message = "Nie udało się zaktualizować nazwy użytkownika",
-                        actionType = UserErrorAction.OK,
-                        errorId = "UPDATE_USERNAME_ERROR"
+            userRepository.getLikedPosts()
+                .onSuccess { posts ->
+                    _likedPosts.value = posts
+                    likeManager.updateLikedPosts(posts)
+                }
+                .onFailure { error ->
+                    sharedErrorViewModel.showError(
+                        UserErrorInfo(
+                            message = "Failed to load liked posts",
+                            actionType = UserErrorAction.RETRY,
+                            errorId = "LOAD_LIKED_POSTS_ERROR",
+                            retryAction = { loadLikedPosts() }
+                        )
                     )
-                )
-            }
+                    println(error)
+                }
         }
     }
 

@@ -1,3 +1,9 @@
+## Project Contributions
+
+- **Code:** [Tomasz - noise](https://github.com/noisevisionproductions/)
+- **Design and UI:** [Arkadiusz - aqlqz] – Idea creator and UI designer
+
+
 This is a Kotlin Multiplatform project targeting Android, iOS.
 
 * `/composeApp` is for code that will be shared across your Compose Multiplatform applications.

@@ -1,8 +1,10 @@
-package org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes
+package org.noisevisionproductions.samplelibrary.database
 
-expect class LikeService() {
+
+expect class LikeRepository() {
     suspend fun toggleLikePost(postId: String): Result<Boolean>
     suspend fun isPostLiked(postId: String): Boolean
+    suspend fun getPostLikesCount(postId: String): Result<Int>
     suspend fun isCommentLiked(commentId: String): Boolean
     suspend fun toggleLikeComment(commentId: String): Result<Unit>
 }

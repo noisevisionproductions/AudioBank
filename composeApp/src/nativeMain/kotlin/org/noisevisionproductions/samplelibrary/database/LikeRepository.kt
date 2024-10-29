@@ -1,6 +1,6 @@
-package org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes
+package org.noisevisionproductions.samplelibrary.database
 
-actual class LikeService {
+actual class LikeRepository {
     actual fun toggleLikePost(postId: String): Result<Boolean> {
         TODO("Not yet implemented")
     }

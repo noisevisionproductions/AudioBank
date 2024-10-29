@@ -29,7 +29,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         authService = AuthService()
 
-
         if (authService.isUserLoggedIn()) {
             val mainMenuIntent = Intent(this, SamplesActivity::class.java)
             startActivity(mainMenuIntent)

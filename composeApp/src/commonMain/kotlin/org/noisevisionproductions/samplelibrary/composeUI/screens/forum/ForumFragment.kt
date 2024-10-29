@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.AlertDialog
 import androidx.compose.material.Button
@@ -54,6 +55,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWind
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
 import org.noisevisionproductions.samplelibrary.interfaces.formatTimeAgo
 import org.noisevisionproductions.samplelibrary.utils.UiState
+import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
 import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 
@@ -64,9 +66,19 @@ fun ForumNavigationHost(
     commentViewModel: CommentViewModel,
     authService: AuthService,
     forumRepository: ForumRepository,
-    likeManager: LikeManager
+    likeManager: LikeManager,
+    navigationViewModel: NavigationViewModel
 ) {
     var currentScreen by remember { mutableStateOf<ForumScreenNavigation>(ForumScreenNavigation.PostList) }
+
+    val navigationEvent by navigationViewModel.navigationEvent.collectAsState()
+
+    LaunchedEffect(navigationEvent) {
+        navigationEvent?.let { postId ->
+            currentScreen = ForumScreenNavigation.PostDetail(postId)
+            navigationViewModel.navigationHandled()
+        }
+    }
 
     when (currentScreen) {
         is ForumScreenNavigation.PostList -> {
@@ -275,79 +287,134 @@ fun PostListView(
     val filteredPosts by postViewModel.filteredPosts.collectAsState()
     val categoryNames by postViewModel.categoryNames.collectAsState()
 
+    // Handle loading state
     when (uiState) {
         is UiState.Loading -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            LoadingIndicator()
         }
 
         is UiState.Error -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "Error: ${(uiState as UiState.Error).message}", color = Color.Red)
-            }
+            ErrorMessage(message = (uiState as UiState.Error).message)
         }
 
         is UiState.Success -> {
-            val postsWithCategories = (uiState as UiState.Success).posts
-
-            if (filteredPosts.isEmpty() || postsWithCategories.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "Brak postów do wyświetlenia")
-                }
+            if (filteredPosts.isEmpty()) {
+                EmptyPostsMessage()
             } else {
-                LazyColumn {
-                    itemsIndexed(filteredPosts.distinct()) { index, post ->
+                PostsList(
+                    filteredPosts = filteredPosts,
+                    categoryNames = categoryNames,
+                    isLoadingMore = isLoadingMore,
+                    commentViewModel = commentViewModel,
+                    userViewModel = userViewModel,
+                    onPostClick = onPostClick,
+                    onLoadMore = { postViewModel.onScrollToEnd() }
+                )
+            }
+        }
+    }
+}
 
-                        LaunchedEffect(post.postId) {
-                            commentViewModel.loadComments(post.postId)
-                            postViewModel.fetchCategoryName(post.categoryId)
-                        }
+@Composable
+private fun PostsList(
+    filteredPosts: List<PostModel>,
+    categoryNames: Map<String, String>,
+    isLoadingMore: Boolean,
+    commentViewModel: CommentViewModel,
+    userViewModel: UserViewModel,
+    onPostClick: (PostModel) -> Unit,
+    onLoadMore: () -> Unit
+) {
+    val listState = rememberLazyListState()
 
-                        val commentState by commentViewModel.getCommentsStateForPost(
-                            post.postId
-                        ).collectAsState()
+    LazyColumn (state = listState){
+        itemsIndexed(filteredPosts.distinct()) { index, post ->
+            PostItem(
+                post = post,
+                categoryNames = categoryNames,
+                commentViewModel = commentViewModel,
+                userViewModel = userViewModel,
+                onPostClick = onPostClick
+            )
 
-                        val lastComment =
-                            commentViewModel.getLastCommentForPost(post.postId)
-
-                        Column {
-                            PostModelItem(
-                                post = post,
-                                categoryName = categoryNames[post.categoryId] ?: "Unknown Category",
-                                onClick = { onPostClick(post) },
-                                userViewModel = userViewModel,
-                                commentCount = commentState.totalCount,
-                                isLoadingComments = commentState.isLoading,
-                                lastComment = lastComment
-                            )
-                            Divider(
-                                color = colors.hintTextColorLight,
-                                thickness = 1.dp,
-                                modifier = Modifier.padding(horizontal = 10.dp)
-                            )
-                        }
-
-                        if (index == postsWithCategories.size - 1 && !isLoadingMore) {
-                            postViewModel.onScrollToEnd()
-                        }
-                    }
-
-                    if (isLoadingMore) {
-                        item {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator()
-                            }
-                        }
-                    }
+            if (index == filteredPosts.size - 1 && !isLoadingMore) {
+                LaunchedEffect(Unit) {
+                    onLoadMore()
                 }
             }
         }
+
+        if (isLoadingMore) {
+            item {
+                LoadMoreIndicator()
+            }
+        }
+    }
+}
+
+@Composable
+private fun PostItem(
+    post: PostModel,
+    categoryNames: Map<String, String>,
+    commentViewModel: CommentViewModel,
+    userViewModel: UserViewModel,
+    onPostClick: (PostModel) -> Unit
+) {
+    LaunchedEffect(post.postId) {
+        commentViewModel.loadComments(post.postId)
+    }
+
+    val commentState by commentViewModel.getCommentsStateForPost(post.postId).collectAsState()
+    val lastComment = commentViewModel.getLastCommentForPost(post.postId)
+
+    Column {
+        PostModelItem(
+            post = post,
+            categoryName = categoryNames[post.categoryId] ?: "Unknown Category",
+            onClick = { onPostClick(post) },
+            userViewModel = userViewModel,
+            commentCount = commentState.totalCount,
+            isLoadingComments = commentState.isLoading,
+            lastComment = lastComment
+        )
+        Divider(
+            color = colors.hintTextColorLight,
+            thickness = 1.dp,
+            modifier = Modifier.padding(horizontal = 10.dp)
+        )
+    }
+}
+
+@Composable
+private fun LoadingIndicator() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun ErrorMessage(message: String) {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Error: $message", color = Color.Red)
+    }
+}
+
+@Composable
+private fun EmptyPostsMessage() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text(text = "Brak postów do wyświetlenia")
+    }
+}
+
+@Composable
+private fun LoadMoreIndicator() {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
     }
 }
 

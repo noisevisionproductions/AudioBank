@@ -1,7 +1,7 @@
 package org.noisevisionproductions.samplelibrary.utils
 
 import org.noisevisionproductions.samplelibrary.auth.AuthService
-import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeService
+import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
@@ -16,8 +16,8 @@ import org.noisevisionproductions.samplelibrary.database.ForumRepository
 import org.noisevisionproductions.samplelibrary.errors.ErrorHandler
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedErrorViewModel
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
-import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerRepository
 import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerRepositoryImpl
+import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
 
 expect class ViewModelFactory(
     authService: AuthService,
@@ -25,7 +25,7 @@ expect class ViewModelFactory(
     likeManager: LikeManager,
     commentRepository: CommentRepository,
     userRepository: UserRepository,
-    likeService: LikeService,
+    likeRepository: LikeRepository,
     firebaseStorageRepository: FirebaseStorageRepository,
     sharedErrorViewModel: SharedErrorViewModel,
     errorHandler: ErrorHandler,
@@ -38,4 +38,5 @@ expect class ViewModelFactory(
     fun uploadSoundViewModel(): UploadSoundViewModel
     fun musicPlayerViewModel(): MusicPlayerViewModel
     fun accountViewModel(): AccountViewModel
+    fun navigationViewModel(): NavigationViewModel
 }

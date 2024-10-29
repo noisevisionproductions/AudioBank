@@ -70,27 +70,6 @@ actual class UserRepository {
         }
     }
 
-    actual suspend fun updateUsername(username: String) {
-        val uid = getCurrentUserId()
-        if (uid != null) {
-            try {
-                firestore.collection("users")
-                    .document(uid)
-                    .update("username", username)
-                    .await()
-            } catch (e: Exception) {
-                Log.e(
-                    "UserRepository",
-                    "Błąd podczas aktualizacji nazwy użytkownika: ${e.message}",
-                    e
-                )
-                throw e
-            }
-        } else {
-            throw Exception("Nie udało się pobrać ID użytkownika.")
-        }
-    }
-
     actual suspend fun updateAvatarUrl(url: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -106,17 +85,10 @@ actual class UserRepository {
         }
     }
 
-    actual suspend fun getLikedPosts(): List<PostModel> =
+    actual suspend fun getPostsByIds(postIds: List<String>): List<PostModel> =
         withContext(Dispatchers.IO) {
             try {
-                val userId = getCurrentUserId() ?: throw IllegalStateException("User not logged in")
-
-                val userDocument = firestore.collection("users").document(userId).get().await()
-                val userModel = userDocument.toObject(UserModel::class.java)
-
-                val likedPostIds = userModel?.likedPosts ?: emptyList()
-
-                likedPostIds.map { postId ->
+                postIds.map { postId ->
                     async {
                         val documentSnapshot = firestore.collection("posts")
                             .document(postId)
@@ -126,14 +98,38 @@ actual class UserRepository {
                     }
                 }.awaitAll().filterNotNull()
             } catch (e: Exception) {
-                Log.e(
-                    "UserRepository",
-                    "Błąd podczas pobierania polubionych postów: ${e.message}",
-                    e
-                )
+                Log.e("UserRepository", "Error fetching posts by IDs: ${e.message}", e)
                 emptyList()
             }
         }
+
+    actual suspend fun getLikedPosts(): Result<List<PostModel>> =
+        withContext(Dispatchers.IO) {
+            try {
+                val userId = getCurrentUserId() ?: return@withContext Result.failure(IllegalStateException("User not logged in"))
+
+                val userDocument = firestore.collection("users").document(userId).get().await()
+                val userModel = userDocument.toObject(UserModel::class.java)
+
+                val likedPostIds = userModel?.likedPosts ?: emptyList()
+
+                val posts = likedPostIds.map { postId ->
+                    async {
+                        val documentSnapshot = firestore.collection("posts")
+                            .document(postId)
+                            .get()
+                            .await()
+                        documentSnapshot.toObject(PostModel::class.java)
+                    }
+                }.awaitAll().filterNotNull()
+
+                Result.success(posts)
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Error fetching liked posts: ${e.message}", e)
+                Result.failure(e)
+            }
+        }
+
 
     actual suspend fun removeLikedPost(postId: String) {
         val uid = getCurrentUserId()
@@ -168,4 +164,6 @@ actual class UserRepository {
             throw Exception("Nie udało się pobrać ID użytkownika.")
         }
     }
+
+
 }

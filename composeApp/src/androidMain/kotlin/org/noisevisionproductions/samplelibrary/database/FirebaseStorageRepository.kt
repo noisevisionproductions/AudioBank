@@ -213,7 +213,6 @@ actual class FirebaseStorageRepository {
                 ?: throw Exception("User not logged in")
 
             val storageRef = storage.reference.child("avatars/$userId/avatar.jpg")
-            val uploadTask = storageRef.putFile(Uri.fromFile(file)).await()
             val downloadUrl = storageRef.downloadUrl.await().toString()
             downloadUrl
         } catch (e: Exception) {
