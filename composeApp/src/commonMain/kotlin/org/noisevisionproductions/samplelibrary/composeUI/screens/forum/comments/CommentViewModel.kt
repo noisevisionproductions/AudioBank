@@ -20,6 +20,8 @@ import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.database.CommentRepository
 import org.noisevisionproductions.samplelibrary.errors.AppError
 import org.noisevisionproductions.samplelibrary.errors.ErrorHandler
+import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
+import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedErrorViewModel
 import org.noisevisionproductions.samplelibrary.interfaces.getCurrentTimestamp
 import org.noisevisionproductions.samplelibrary.utils.dataClasses.CommentState
@@ -68,7 +70,13 @@ class CommentViewModel(
                     currentMap.toMutableMap().apply { put(postId, commentsForPost) }
                 }
             } catch (e: Exception) {
-
+                UserErrorInfo(
+                    message = "Nie udało się załadować komentarzy\n${e.message}",
+                    actionType = UserErrorAction.RETRY,
+                    errorId = "UPDATE_SOUND_METADATA_ERROR",
+                    retryAction = { loadComments(postId) }
+                )
+                println(e)
             }
         }
     }
@@ -107,8 +115,8 @@ class CommentViewModel(
     fun toggleCommentLike(postId: String, commentId: String) {
         viewModelScope.launch {
             val currentState = likeManager.getCommentLikeState(postId, commentId)
-            val newLikeState = !(currentState?.isLiked ?: false)
-            val newLikesCount = (currentState?.likesCount ?: 0) + (if (newLikeState) 1 else -1)
+            val newLikeState = !(currentState.isLiked)
+            val newLikesCount = (currentState.likesCount) + (if (newLikeState) 1 else -1)
 
             likeManager.updateCommentLike(
                 postId,
@@ -123,8 +131,8 @@ class CommentViewModel(
                         postId,
                         commentId,
                         LikeManager.LikeState(
-                            currentState?.isLiked ?: false,
-                            currentState?.likesCount ?: 0
+                            currentState.isLiked,
+                            currentState.likesCount
                         )
                     )
                 }
@@ -133,10 +141,17 @@ class CommentViewModel(
                     postId,
                     commentId,
                     LikeManager.LikeState(
-                        currentState?.isLiked ?: false,
-                        currentState?.likesCount ?: 0
+                        currentState.isLiked,
+                        currentState.likesCount
                     )
                 )
+                UserErrorInfo(
+                    message = "Nie udało się zmienić polubienia\n${e.message}",
+                    actionType = UserErrorAction.RETRY,
+                    errorId = "TOGGLE_COMMENT_LIKE_ERROR",
+                    retryAction = { toggleCommentLike(postId, commentId) }
+                )
+                println(e)
             }
         }
     }
@@ -228,7 +243,7 @@ class CommentViewModel(
                 )
                 val userErrorInfo = errorHandler.handleUserError(
                     error = error,
-                    errorId = "prepare_comment",
+                    errorId = "ADD_COMMENT_ERROR",
                     retryAction = { addComment(postId) }
                 )
                 sharedErrorViewModel.showError(userErrorInfo)
@@ -280,7 +295,13 @@ class CommentViewModel(
                         loadComments(postId)
                     }
                 } catch (e: Exception) {
-                    println("Błąd podczas dodawania odpowiedzi: ${e.message}")
+                    UserErrorInfo(
+                        message = "Nie udało się dodać odpowiedźi\n${e.message}",
+                        actionType = UserErrorAction.RETRY,
+                        errorId = "ADD_REPLY_ERROR",
+                        retryAction = { addReply(postId, parentCommentId) }
+                    )
+                    println(e)
                 } finally {
                     _isSendingReply.value = false
                 }

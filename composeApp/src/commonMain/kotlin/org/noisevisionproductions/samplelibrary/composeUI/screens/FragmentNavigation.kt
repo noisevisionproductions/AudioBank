@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,6 +37,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.SoundN
 import org.noisevisionproductions.samplelibrary.database.CommentRepository
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
+import org.noisevisionproductions.samplelibrary.database.PostsRepository
 import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.errors.ErrorHandler
 import org.noisevisionproductions.samplelibrary.errors.ErrorLogger
@@ -67,6 +67,7 @@ fun BarWithFragmentsList(
     val likeRepository = remember { LikeRepository() }
     val forumRepository = remember { ForumRepository() }
     val commentRepository = remember { CommentRepository() }
+    val postsRepository = remember { PostsRepository() }
     val firebaseStorageRepository = remember { FirebaseStorageRepository() }
 
     val viewModelFactory = remember {
@@ -81,7 +82,8 @@ fun BarWithFragmentsList(
             sharedErrorViewModel,
             errorHandler,
             musicPlayerService,
-            avatarPickerRepositoryImpl
+            avatarPickerRepositoryImpl,
+            postsRepository
         )
     }
     val navigationViewModel = remember { viewModelFactory.navigationViewModel() }
@@ -91,6 +93,7 @@ fun BarWithFragmentsList(
     val commentViewModel = remember { viewModelFactory.createCommentViewModel() }
     val musicPlayerViewModel = remember { viewModelFactory.musicPlayerViewModel() }
     val accountViewModel = remember { viewModelFactory.accountViewModel() }
+    val userSoundsViewModel = remember { viewModelFactory.userSoundsViewModel() }
 
     val currentTab by navigationViewModel.selectedTab.collectAsState()
     var currentScreen by remember { mutableStateOf(FragmentsTabs.Tab1) }
@@ -105,14 +108,14 @@ fun BarWithFragmentsList(
                 .fillMaxSize()
                 .background(colors.backgroundWhiteColor)
         ) {
-
-            Spacer(// miejsce nad paskiem
+            Box(
                 modifier = Modifier
                     .height(100.dp)
                     .fillMaxWidth()
                     .background(color = colors.primaryBackgroundColor)
             )
-            val tabTitles = listOf("Dźwięki & pętle", "acapella", "Forum", "Pomoc")
+
+            val tabTitles = listOf("Dźwięki", "Forum", "Pomoc")
 
             // Pasek wyboru fragmentów
             Row(
@@ -130,7 +133,6 @@ fun BarWithFragmentsList(
                             0 -> currentScreen == FragmentsTabs.Tab1
                             1 -> currentScreen == FragmentsTabs.Tab2
                             2 -> currentScreen == FragmentsTabs.Tab3
-                            3 -> currentScreen == FragmentsTabs.Tab4
                             else -> false
                         },
                         onClick = {
@@ -138,13 +140,13 @@ fun BarWithFragmentsList(
                                 0 -> FragmentsTabs.Tab1
                                 1 -> FragmentsTabs.Tab2
                                 2 -> FragmentsTabs.Tab3
-                                3 -> FragmentsTabs.Tab4
                                 else -> FragmentsTabs.Tab1
                             }
                             navigationViewModel.updateSelectedTab(newTab)
                         },
                         isFirst = i == 0,
-                        isLast = i == tabTitles.size - 1
+                        isLast = i == tabTitles.size - 1,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -160,30 +162,22 @@ fun BarWithFragmentsList(
                     )
                 }
 
-                FragmentsTabs.Tab2 -> {
-                    dynamicListViewModel.updateDirectoryPath("acapella")
-                    SoundNavigationHost(
-                        dynamicListViewModel = dynamicListViewModel,
-                        filePicker = filePicker,
-                        uploadSoundViewModel = uploadSoundViewModel,
-                        musicPlayerViewModel = musicPlayerViewModel
-                    )
-                }
-
-                FragmentsTabs.Tab3 -> ForumNavigationHost(
+                FragmentsTabs.Tab2 -> ForumNavigationHost(
                     postViewModel = postViewModel,
                     userViewModel = userViewModel,
                     commentViewModel = commentViewModel,
                     authService = authService,
                     forumRepository = forumRepository,
                     likeManager = likeManager,
-                    navigationViewModel = navigationViewModel
+                    navigationViewModel = navigationViewModel,
+                    postsRepository = postsRepository
                 )
 
                 else -> AccountFragmentNavigationHost(
                     accountViewModel = accountViewModel,
-                    errorDialogManager = errorDialogManager,
-                    navigationViewModel = navigationViewModel
+                    navigationViewModel = navigationViewModel,
+                    userSoundsViewModel = userSoundsViewModel,
+                    uploadSoundViewModel = uploadSoundViewModel
                 )
             }
         }
@@ -196,10 +190,11 @@ fun TabItem(
     isSelected: Boolean,
     onClick: () -> Unit,
     isFirst: Boolean,
-    isLast: Boolean
+    isLast: Boolean,
+    modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .padding(PaddingValues(top = 4.dp))
             .fillMaxHeight()
             .padding(
@@ -222,4 +217,3 @@ fun TabItem(
         )
     }
 }
-

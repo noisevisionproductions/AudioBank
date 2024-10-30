@@ -40,10 +40,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
-import org.noisevisionproductions.samplelibrary.composeUI.screens.account.accountSettings.AccountEditScreen
-import org.noisevisionproductions.samplelibrary.composeUI.screens.account.accountSettings.AccountViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userProfile.AccountEditScreen
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userProfile.AccountViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userSounds.UserSoundsScreen
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userSounds.UserSoundsViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
-import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.ErrorDialogManager
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadSoundViewModel
 import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_account_settings
@@ -55,9 +57,10 @@ import samplelibrary.composeapp.generated.resources.icon_sounds_option
 
 @Composable
 fun AccountFragmentNavigationHost(
+    userSoundsViewModel: UserSoundsViewModel,
     accountViewModel: AccountViewModel,
-    errorDialogManager: ErrorDialogManager,
-    navigationViewModel: NavigationViewModel
+    navigationViewModel: NavigationViewModel,
+    uploadSoundViewModel: UploadSoundViewModel
 ) {
     var currentScreen by remember {
         mutableStateOf<AccountScreenNavigation>(
@@ -77,11 +80,18 @@ fun AccountFragmentNavigationHost(
         is AccountScreenNavigation.AccountEditScreen -> {
             AccountEditScreen(
                 accountViewModel = accountViewModel,
-                errorDialogManager = errorDialogManager,
                 onNavigateBack = { currentScreen = AccountScreenNavigation.AccountFragment },
                 onPostClick = { postId ->
                     navigationViewModel.navigateToPost(postId)
                 }
+            )
+        }
+
+        is AccountScreenNavigation.UserSoundsScreen -> {
+            UserSoundsScreen(
+                userSoundsViewModel = userSoundsViewModel,
+                onNavigateBack = { currentScreen = AccountScreenNavigation.AccountFragment },
+                uploadSoundViewModel = uploadSoundViewModel
             )
         }
     }
@@ -155,6 +165,9 @@ fun MainContentWithOptions(
             OptionTile(title, icon) {
                 if (index == 0) {
                     onNavigate(AccountScreenNavigation.AccountEditScreen)
+                }
+                if (index == 5) {
+                    onNavigate(AccountScreenNavigation.UserSoundsScreen)
                 }
             }
         }

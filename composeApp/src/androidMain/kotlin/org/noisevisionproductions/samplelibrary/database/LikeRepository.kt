@@ -22,32 +22,29 @@ actual class LikeRepository {
                 val uid = authService.getCurrentUserId()
                     ?: return@withContext Result.failure(Exception("User not authenticated"))
 
-                // Reference to user's liked posts
                 val userLikesRef = firestore.collection("users").document(uid)
                 val postRef = firestore.collection("posts").document(postId)
 
                 var isLiked = false
                 firestore.runTransaction { transaction ->
-                    // Get current post data
                     val postDoc = transaction.get(postRef)
                     val userDoc = transaction.get(userLikesRef)
 
                     val currentLikes = postDoc.getLong("likesCount")?.toInt() ?: 0
-                    val likedPosts = userDoc.get("likedPosts") as? List<String> ?: listOf()
+                    val likedPosts =
+                        (userDoc.get("likedPosts") as? List<*>)?.filterIsInstance<String>()
+                            ?: listOf()
 
                     isLiked = postId !in likedPosts
 
-                    // Update post likes count
                     val newLikes = if (isLiked) currentLikes + 1 else currentLikes - 1
 
-                    // Update user's liked posts list
                     val newLikedPosts = if (isLiked) {
                         likedPosts + postId
                     } else {
                         likedPosts - postId
                     }
 
-                    // Perform updates
                     transaction.update(postRef, "likesCount", newLikes)
                     transaction.update(userLikesRef, "likedPosts", newLikedPosts)
                 }.await()
@@ -58,16 +55,17 @@ actual class LikeRepository {
             }
         }
 
-   actual suspend fun getPostLikesCount(postId: String): Result<Int> = withContext(Dispatchers.IO) {
-        try {
-            val postDoc = firestore.collection("posts").document(postId).get().await()
-            val likesCount = postDoc.getLong("likesCount")?.toInt() ?: 0
-            Result.success(likesCount)
-        } catch (e: Exception) {
-            Log.e("LikeRepository", "Error getting likes count: ${e.message}", e)
-            Result.failure(e)
+    actual suspend fun getPostLikesCount(postId: String): Result<Int> =
+        withContext(Dispatchers.IO) {
+            try {
+                val postDoc = firestore.collection("posts").document(postId).get().await()
+                val likesCount = postDoc.getLong("likesCount")?.toInt() ?: 0
+                Result.success(likesCount)
+            } catch (e: Exception) {
+                Log.e("LikeRepository", "Error getting likes count: ${e.message}", e)
+                Result.failure(e)
+            }
         }
-    }
 
     actual suspend fun isPostLiked(postId: String): Boolean = withContext(Dispatchers.IO) {
         val uid = authService.getCurrentUserId()

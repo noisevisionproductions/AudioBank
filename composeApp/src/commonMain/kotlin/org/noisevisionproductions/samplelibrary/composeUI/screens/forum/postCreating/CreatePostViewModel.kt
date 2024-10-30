@@ -10,11 +10,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
+import org.noisevisionproductions.samplelibrary.database.PostsRepository
+import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
+import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import org.noisevisionproductions.samplelibrary.utils.models.CategoryModel
 
 class CreatePostViewModel(
     private val forumRepository: ForumRepository,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val postsRepository: PostsRepository
 ) : ViewModel() {
 
     private val _title = MutableStateFlow("")
@@ -102,38 +106,48 @@ class CreatePostViewModel(
         }
 
         viewModelScope.launch {
-            val userId = authService.getCurrentUserId()
+            try {
+                val userId = authService.getCurrentUserId()
 
-            if (userId == null) {
-                _errorMessage.value = "Musisz być zalogowany, aby utworzyć post"
-                return@launch
-            }
-
-            val postUsername = if (isAnonymous.value) {
-                "Anonim"
-            } else {
-                username ?: run {
-                    _errorMessage.value = "Nie można pobrać nazwy użytkownika"
+                if (userId == null) {
+                    _errorMessage.value = "Musisz być zalogowany, aby utworzyć post"
                     return@launch
                 }
-            }
 
-            selectedCategory.value?.let { category ->
-                forumRepository.createPost(
-                    title = title.value,
-                    content = content.value,
-                    username = postUsername,
-                    categoryId = category.id,
-                    userId = userId
-                ) { success ->
-                    if (success) {
-                        _errorMessage.value = null
-                        onPostCreated()
-                    } else {
-                        _errorMessage.value = "Błąd podczas tworzenia postu"
-
+                val postUsername = if (isAnonymous.value) {
+                    "Anonim"
+                } else {
+                    username ?: run {
+                        _errorMessage.value = "Nie można pobrać nazwy użytkownika"
+                        return@launch
                     }
                 }
+
+                selectedCategory.value?.let { category ->
+                    postsRepository.createPost(
+                        title = title.value,
+                        content = content.value,
+                        username = postUsername,
+                        categoryId = category.id,
+                        userId = userId
+                    ) { success ->
+                        if (success) {
+                            _errorMessage.value = null
+                            onPostCreated()
+                        } else {
+                            _errorMessage.value = "Błąd podczas tworzenia postu"
+
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                UserErrorInfo(
+                    message = "Nie udało się stworzyć postu\n${e.message}",
+                    actionType = UserErrorAction.RETRY,
+                    errorId = "CREATE_POST_ERROR",
+                    retryAction = { createPost(username, onPostCreated) }
+                )
+                println(e)
             }
         }
     }

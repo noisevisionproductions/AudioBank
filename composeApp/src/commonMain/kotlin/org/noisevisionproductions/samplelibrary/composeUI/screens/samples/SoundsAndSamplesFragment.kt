@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -51,7 +52,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.mediaP
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadNewSound
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadSoundViewModel
 import org.noisevisionproductions.samplelibrary.utils.TagRepository
-import org.noisevisionproductions.samplelibrary.utils.dataClasses.AudioMetadata
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 import org.noisevisionproductions.samplelibrary.utils.decodeUrl
 import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
 import samplelibrary.composeapp.generated.resources.Res
@@ -126,27 +127,30 @@ fun SampleListHeader() {
             text = "Nazwa",
             fontSize = 15.sp,
             color = colors.hintTextColorLight,
-            modifier = Modifier.weight(3f),
+            modifier = Modifier.weight(2f),
             textAlign = TextAlign.Center
         )
         Text(
             text = "Czas",
             fontSize = 15.sp,
             color = colors.hintTextColorLight,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center
         )
-        /* Text(
-             text = "Ton",
-             fontSize = 15.sp,
-             color = colors.hintTextColorLight,
-             modifier = Modifier.weight(1f)
-         )
-         Text(
-             text = "BPM",
-             fontSize = 15.sp,
-             color = colors.hintTextColorLight,
-             modifier = Modifier.weight(1f)
-         )*/
+        Text(
+            text = "Ton",
+            fontSize = 15.sp,
+            color = colors.hintTextColorLight,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "BPM",
+            fontSize = 15.sp,
+            color = colors.hintTextColorLight,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center
+        )
         Box(
             modifier = Modifier.weight(1f)
         ) {}
@@ -160,6 +164,8 @@ fun SampleListHeader() {
 fun SampleListItem(
     fileName: String,
     songUrl: String,
+    tone: String,
+    bpm: String,
     duration: String,
     isPlaying: Boolean,
     currentlyPlayingUrl: String?,
@@ -169,7 +175,7 @@ fun SampleListItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
         PlayPauseButton(
@@ -180,30 +186,35 @@ fun SampleListItem(
         )
         ScrollingText(
             fileName = fileName,
-            modifier = Modifier.weight(3f)
+            modifier = Modifier
+                .weight(2f)
         )
         Text(
             text = duration,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center
         )
-        /*   Text(
-               text = "ton",
-               modifier = Modifier.weight(1f)
-           )
-           Text(
-               text = "bpm",
-               modifier = Modifier.weight(1f)
-           )*/
+        Text(
+            text = tone,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = bpm,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center
+        )
 
         var isFavorite by remember { mutableStateOf(false) }
         Image(
             painterResource(if (isFavorite) Res.drawable.icon_heart_filled else Res.drawable.icon_heart),
             contentDescription = if (isFavorite) "Unfavorite" else "Favorite",
             modifier = Modifier.weight(1f)
-                .size(40.dp)
+                .size(30.dp)
                 .clickable {
                     isFavorite = !isFavorite
                 }
+                .wrapContentSize(Alignment.Center)
         )
 
         var expanded by remember { mutableStateOf(false) }
@@ -213,8 +224,9 @@ fun SampleListItem(
             contentDescription = "Properties menu",
             modifier = Modifier
                 .weight(1f)
-                .size(40.dp)
+                .size(30.dp)
                 .clickable { expanded = true }
+                .wrapContentSize(Alignment.Center)
         )
         PropertiesMenu(
             fileUrl = songUrl,
@@ -332,7 +344,7 @@ fun MainContentWithSounds(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(vertical = 16.dp)
+                contentPadding = PaddingValues(vertical = 16.dp),
             ) {
                 items(
                     fileList.size,
@@ -341,19 +353,22 @@ fun MainContentWithSounds(
                     val fileMetadata = fileList[index]
                     val fileName = decodeUrl(fileMetadata.url ?: "")
                     val songUrl = fileMetadata.url ?: ""
-                    val duration = fileMetadata.duration
+                    val duration =
+                        if (fileMetadata.duration.isNullOrEmpty()) "-" else fileMetadata.duration
+                    val tone = if (fileMetadata.tone.isNullOrEmpty()) "-" else fileMetadata.tone
+                    val bpm = if (fileMetadata.bpm.isNullOrEmpty()) "-" else fileMetadata.bpm
 
                     if (songUrl.isNotEmpty()) {
-                        if (duration != null) {
-                            SampleListItem(
-                                fileName = fileName,
-                                songUrl = songUrl,
-                                duration = duration,
-                                isPlaying = (isPlaying && currentlyPlayingUrl == songUrl),
-                                currentlyPlayingUrl = currentlyPlayingUrl,
-                                onPlayPauseClick = onPlayPauseClick
-                            )
-                        }
+                        SampleListItem(
+                            fileName = fileName,
+                            songUrl = songUrl,
+                            duration = duration,
+                            tone = tone,
+                            bpm = bpm,
+                            isPlaying = (isPlaying && currentlyPlayingUrl == songUrl),
+                            currentlyPlayingUrl = currentlyPlayingUrl,
+                            onPlayPauseClick = onPlayPauseClick
+                        )
                     }
 
                     Divider(

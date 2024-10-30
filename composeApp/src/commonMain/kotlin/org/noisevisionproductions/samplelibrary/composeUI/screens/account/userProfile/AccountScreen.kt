@@ -1,4 +1,4 @@
-package org.noisevisionproductions.samplelibrary.composeUI.screens.account.accountSettings
+package org.noisevisionproductions.samplelibrary.composeUI.screens.account.userProfile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
@@ -34,14 +33,12 @@ import androidx.compose.ui.unit.dp
 import org.noisevisionproductions.samplelibrary.composeUI.CustomTopAppBar
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.AvatarManager
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
-import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.ErrorDialogManager
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 import org.noisevisionproductions.samplelibrary.utils.models.UserModel
 
 @Composable
 fun AccountEditScreen(
     accountViewModel: AccountViewModel,
-    errorDialogManager: ErrorDialogManager,
     onNavigateBack: () -> Unit,
     onPostClick: (String) -> Unit
 ) {
@@ -58,8 +55,6 @@ fun AccountEditScreen(
             title = "Ustawienia konta",
             onNavigateBack = onNavigateBack
         )
-
-        errorDialogManager.ShowErrorDialog()
 
         when (val state = userState) {
             is UserState.Loading -> {

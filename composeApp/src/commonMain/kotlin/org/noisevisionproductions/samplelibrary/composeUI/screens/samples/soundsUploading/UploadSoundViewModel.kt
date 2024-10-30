@@ -9,8 +9,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
+import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
+import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import org.noisevisionproductions.samplelibrary.utils.UploadStatus
-import org.noisevisionproductions.samplelibrary.utils.dataClasses.AudioMetadata
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 import org.noisevisionproductions.samplelibrary.utils.dataClasses.FileData
 
 class UploadSoundViewModel(
@@ -95,8 +97,13 @@ class UploadSoundViewModel(
                 _uploadStatuses.value = _uploadStatuses.value.toMutableMap().also {
                     it[modifiedFileName] = UploadStatus.ERROR
                 }
+                UserErrorInfo(
+                    message = "Nie udało się zapisać dźwięków\n${e.message}",
+                    actionType = UserErrorAction.OK,
+                    errorId = "UPLOAD_SOUND_ERROR"
+                )
+                println(e)
             }
-
         }
     }
 

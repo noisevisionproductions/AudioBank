@@ -3,7 +3,7 @@ package org.noisevisionproductions.samplelibrary.database
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import org.noisevisionproductions.samplelibrary.utils.dataClasses.AudioMetadata
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 
 actual class FirestoreMetadataRepository {
 

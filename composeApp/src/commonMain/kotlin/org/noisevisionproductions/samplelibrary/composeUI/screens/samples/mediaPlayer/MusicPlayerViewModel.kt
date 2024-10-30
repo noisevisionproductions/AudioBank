@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
-import org.noisevisionproductions.samplelibrary.utils.dataClasses.AudioMetadata
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 import org.noisevisionproductions.samplelibrary.utils.decodeFileName
 
 class MusicPlayerViewModel(

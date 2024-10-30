@@ -59,6 +59,8 @@ import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
 import org.noisevisionproductions.samplelibrary.utils.TagRepository
 import org.noisevisionproductions.samplelibrary.utils.UploadStatus
 import org.noisevisionproductions.samplelibrary.utils.dataClasses.FileData
+import org.noisevisionproductions.samplelibrary.utils.metadata.MetadataEditor
+import org.noisevisionproductions.samplelibrary.utils.metadata.MetadataLists
 
 @Composable
 fun UploadNewSound(
@@ -364,117 +366,41 @@ fun FileEditorView(
     onRemoveFile: () -> Unit,
     uploadSoundViewModel: UploadSoundViewModel
 ) {
-    val fullFileName = "$username - ${file.name}"
     val tagValidationErrors by uploadSoundViewModel.tagValidationErrors.collectAsState()
+    val showTagError = tagValidationErrors.contains(index)
 
-    Column(
+    MetadataEditor(
+        fileName = "$username - ${file.name}",
+        onFileNameChange = { newName -> onFileNameChange(index, newName) },
+        bpm = file.bpmValue ?: "",
+        onBpmChange = onBpmChange,
+        tone = file.toneValue ?: "",
+        onToneChange = onToneChange,
+        tags = file.tags,
+        onTagsChange = onTagsChange,
+        showTagError = showTagError,
+        uploadSoundViewModel = uploadSoundViewModel,
+        fileId = index
+    )
+
+    // Additional UI elements like the "Remove File" button
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center
     ) {
-        CustomOutlinedTextField(
-            value = fullFileName,
-            onValueChange = { newText ->
-                if (newText.startsWith("$username - ")) {
-                    val editableName = newText.removePrefix("$username - ")
-                    onFileNameChange(index, editableName)
-                } else {
-                    // Reset if user tries to edit the username part
-                    onFileNameChange(index, file.name)
-                }
-            },
-            label = "Edytuj nazwę pliku",
-            imeAction = ImeAction.Done,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
-                DropdownSelector(
-                    label = "BPM",
-                    options = listOf(
-                        "60",
-                        "70",
-                        "80",
-                        "90",
-                        "100",
-                        "110",
-                        "120",
-                        "130",
-                        "140",
-                        "150",
-                        "160",
-                        "170",
-                        "180",
-                        "190",
-                        "200"
-                    ),
-                    selectedOption = file.bpmValue ?: "",
-                    onOptionSelected = onBpmChange
-                )
-            }
-
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
-                DropdownSelector(
-                    label = "Ton",
-                    options = listOf(
-                        "C",
-                        "C#",
-                        "D",
-                        "D#",
-                        "E",
-                        "F",
-                        "F#",
-                        "G",
-                        "G#",
-                        "A",
-                        "A#",
-                        "B"
-                    ),
-                    selectedOption = file.toneValue ?: "",
-                    onOptionSelected = onToneChange
-                )
-            }
-
+        TextButton(onClick = onRemoveFile) {
+            Text(
+                text = "Usuń plik",
+                color = colors.primaryBackgroundColor,
+                style = MaterialTheme.typography.button,
+                fontSize = 19.sp
+            )
         }
-        // Tags selector for the file, placed below the BPM and Tone row
-        TagsSelectorForFile(
-            selectedTags = file.tags,
-            onTagsSelected = { updatedTags ->
-                onTagsChange(updatedTags)
-            },
-            fileId = index,
-            showError = tagValidationErrors.contains(index),
-            uploadSoundViewModel = uploadSoundViewModel
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            TextButton(onClick = onRemoveFile) {
-                Text(
-                    text = "Usuń plik",
-                    color = colors.primaryBackgroundColor,
-                    style = MaterialTheme.typography.button,
-                    fontSize = 19.sp
-                )
-            }
-        }
-
-        Divider(modifier = Modifier.padding(vertical = 8.dp))
     }
+
+    Divider(modifier = Modifier.padding(vertical = 8.dp))
 }
 
 
@@ -529,7 +455,7 @@ fun DropdownSelector(
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-private fun TagsMultiSelectMenu(
+fun TagsMultiSelectMenu(
     allTags: List<String>,
     selectedTags: List<String>,
     onTagSelected: (String) -> Unit,

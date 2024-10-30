@@ -9,5 +9,6 @@ data class UserModel(
     val label: String = "",
     val likedPosts: List<String> = emptyList(),
     val likedComments: List<String> = emptyList(),
+    val likedSounds: List<String> = emptyList(),
     val postIds: List<String> = emptyList()
 )

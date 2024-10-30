@@ -318,10 +318,15 @@ fun ScrollingText(fileName: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun ShowDialogAlert(onConfirm: () -> Unit, onDismiss: () -> Unit, contentQuestion: String) {
+fun CustomAlertDialog(
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+    title: String,
+    contentQuestion: String
+) {
     AlertDialog(
         onDismissRequest = { onDismiss() },
-        title = { Text(text = "Anulować zmiany?") },
+        title = { Text(text = title) },
         text = { Text(text = contentQuestion) },
         confirmButton = {
             Button(
@@ -428,7 +433,8 @@ fun CustomOutlinedTextField(
             imeAction = imeAction
         ),
         keyboardActions = keyboardActions,
-        shape = RoundedCornerShape(30.dp)
+        shape = RoundedCornerShape(30.dp),
+        textStyle = TextStyle(fontSize = 16.sp),
     )
 }
 
@@ -436,6 +442,7 @@ fun CustomOutlinedTextField(
 fun CustomTopAppBar(
     title: String,
     onNavigateBack: (() -> Unit)? = null,
+    onBackPressed: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(
@@ -449,10 +456,14 @@ fun CustomTopAppBar(
         navigationIcon = onNavigateBack?.let {
             {
                 IconButton(onClick = onNavigateBack) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Powrót do porzedniego menu"
-                    )
+                    IconButton(onClick = {
+                        onBackPressed?.invoke() ?: onNavigateBack()
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
                 }
             }
         },

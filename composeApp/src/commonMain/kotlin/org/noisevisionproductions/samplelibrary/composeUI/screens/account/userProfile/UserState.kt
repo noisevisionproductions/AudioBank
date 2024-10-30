@@ -1,4 +1,4 @@
-package org.noisevisionproductions.samplelibrary.composeUI.screens.account.accountSettings
+package org.noisevisionproductions.samplelibrary.composeUI.screens.account.userProfile
 
 import org.noisevisionproductions.samplelibrary.utils.models.UserModel
 

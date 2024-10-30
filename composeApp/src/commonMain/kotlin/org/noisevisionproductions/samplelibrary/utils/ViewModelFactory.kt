@@ -8,11 +8,13 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.Li
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWindow.PostViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadSoundViewModel
 import org.noisevisionproductions.samplelibrary.auth.UserViewModel
-import org.noisevisionproductions.samplelibrary.composeUI.screens.account.accountSettings.AccountViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userProfile.AccountViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userSounds.UserSoundsViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.mediaPlayer.MusicPlayerViewModel
 import org.noisevisionproductions.samplelibrary.database.CommentRepository
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
+import org.noisevisionproductions.samplelibrary.database.PostsRepository
 import org.noisevisionproductions.samplelibrary.errors.ErrorHandler
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedErrorViewModel
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
@@ -30,7 +32,8 @@ expect class ViewModelFactory(
     sharedErrorViewModel: SharedErrorViewModel,
     errorHandler: ErrorHandler,
     musicPlayerService: MusicPlayerService,
-    avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl
+    avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl,
+    postsRepository: PostsRepository
 ) {
     fun createPostViewModel(): PostViewModel
     fun createCommentViewModel(): CommentViewModel
@@ -39,4 +42,5 @@ expect class ViewModelFactory(
     fun musicPlayerViewModel(): MusicPlayerViewModel
     fun accountViewModel(): AccountViewModel
     fun navigationViewModel(): NavigationViewModel
+    fun userSoundsViewModel(): UserSoundsViewModel
 }

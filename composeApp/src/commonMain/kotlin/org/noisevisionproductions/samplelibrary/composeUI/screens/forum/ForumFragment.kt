@@ -44,7 +44,7 @@ import org.noisevisionproductions.samplelibrary.auth.UserViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.CustomTopAppBar
 import org.noisevisionproductions.samplelibrary.composeUI.DropDownMenuWithItems
 import org.noisevisionproductions.samplelibrary.composeUI.RowWithSearchBar
-import org.noisevisionproductions.samplelibrary.composeUI.ShowDialogAlert
+import org.noisevisionproductions.samplelibrary.composeUI.CustomAlertDialog
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
@@ -53,6 +53,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postCrea
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWindow.PostDetailView
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWindow.PostViewModel
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
+import org.noisevisionproductions.samplelibrary.database.PostsRepository
 import org.noisevisionproductions.samplelibrary.interfaces.formatTimeAgo
 import org.noisevisionproductions.samplelibrary.utils.UiState
 import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
@@ -67,7 +68,8 @@ fun ForumNavigationHost(
     authService: AuthService,
     forumRepository: ForumRepository,
     likeManager: LikeManager,
-    navigationViewModel: NavigationViewModel
+    navigationViewModel: NavigationViewModel,
+    postsRepository: PostsRepository
 ) {
     var currentScreen by remember { mutableStateOf<ForumScreenNavigation>(ForumScreenNavigation.PostList) }
 
@@ -97,7 +99,8 @@ fun ForumNavigationHost(
             CreatePostScreen(
                 createPostViewModel = CreatePostViewModel(
                     forumRepository = forumRepository,
-                    authService = authService
+                    authService = authService,
+                    postsRepository = postsRepository
                 ),
                 userViewModel = userViewModel,
                 onNavigateBack = { currentScreen = ForumScreenNavigation.PostList }
@@ -197,13 +200,14 @@ fun CreatePostScreen(
     }
 
     if (showDialog) {
-        ShowDialogAlert(
+        CustomAlertDialog(
             onConfirm = {
                 showDialog = false
                 onNavigateBack()
             },
             onDismiss = { showDialog = false },
-            contentQuestion = "Czy na pewno chcesz anulować wprowadzanie nowego postu?"
+            contentQuestion = "Czy na pewno chcesz anulować wprowadzanie nowego postu?",
+            title = "Anulowanie"
         )
     }
 }
@@ -327,7 +331,7 @@ private fun PostsList(
 ) {
     val listState = rememberLazyListState()
 
-    LazyColumn (state = listState){
+    LazyColumn(state = listState) {
         itemsIndexed(filteredPosts.distinct()) { index, post ->
             PostItem(
                 post = post,

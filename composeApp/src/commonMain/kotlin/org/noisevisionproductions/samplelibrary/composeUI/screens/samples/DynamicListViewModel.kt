@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
-import org.noisevisionproductions.samplelibrary.utils.dataClasses.AudioMetadata
+import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
+import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 import org.noisevisionproductions.samplelibrary.utils.decodeFileName
 
 class DynamicListViewModel(
@@ -106,7 +108,13 @@ class DynamicListViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false) }
-                println("Error fetching files: ${e.message}")
+                UserErrorInfo(
+                    message = "Błąd podczas ładowania dźwięków\n${e.message}",
+                    actionType = UserErrorAction.RETRY,
+                    errorId = "LOADING_MORE_FILES_ERROR",
+                    retryAction = { loadMoreFiles() }
+                )
+                println(e)
             }
         }
     }

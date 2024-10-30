@@ -136,7 +136,7 @@ actual class UserRepository {
         if (uid != null) {
             try {
                 val userDocRef = firestore.collection("users").document(uid)
-                val postDocRef = firestore.collection("posts").document(postId)
+                val postDocRef = firestore.collection("poss").document(postId)
 
                 firestore.runTransaction { transaction ->
                     val snapshot = transaction.get(userDocRef)
@@ -164,6 +164,4 @@ actual class UserRepository {
             throw Exception("Nie udało się pobrać ID użytkownika.")
         }
     }
-
-
 }

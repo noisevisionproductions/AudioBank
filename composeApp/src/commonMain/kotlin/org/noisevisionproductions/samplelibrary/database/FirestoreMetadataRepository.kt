@@ -1,6 +1,6 @@
 package org.noisevisionproductions.samplelibrary.database
 
-import org.noisevisionproductions.samplelibrary.utils.dataClasses.AudioMetadata
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 
 expect class FirestoreMetadataRepository() {
     suspend fun searchByTags(tags: List<String>): List<AudioMetadata>

@@ -1,4 +1,4 @@
-package org.noisevisionproductions.samplelibrary.utils.dataClasses
+package org.noisevisionproductions.samplelibrary.utils.metadata
 
 data class AudioMetadata(
     val id: String? = null,

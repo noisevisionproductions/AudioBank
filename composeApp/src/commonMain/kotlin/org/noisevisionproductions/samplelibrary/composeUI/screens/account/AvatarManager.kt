@@ -23,7 +23,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.PlatformAvatarImage
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 
 object AvatarManager {
-    private /*const*/ val DEFAULT_AVATAR_SIZE = 120.dp
+    private val DEFAULT_AVATAR_SIZE = 120.dp
 
     @Composable
     fun UserAvatar(

@@ -1,12 +1,14 @@
 package org.noisevisionproductions.samplelibrary.database
 
-import org.noisevisionproductions.samplelibrary.utils.dataClasses.AudioMetadata
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 
 expect class FirebaseStorageRepository() {
     suspend fun listFilesWithMetadata(
         directoryPath: String,
         continuationToken: String?
     ): Pair<List<AudioMetadata>, String?>
+
+    suspend fun uploadImage(filePath: String): String
 
     suspend fun uploadSoundsToStorage(
         username: String,
@@ -16,5 +18,16 @@ expect class FirebaseStorageRepository() {
         onProgress: (Float) -> Unit
     ): Result<String>
 
-    suspend fun uploadImage(filePath: String): String
+    suspend fun getUserSounds(
+        username: String,
+        limit: Int = 50,
+        lastDocumentId: String? = null
+    ): Result<Pair<List<AudioMetadata>, String?>>
+
+    suspend fun updateSoundMetadata(
+        soundId: String,
+        updates: Map<String, Any>
+    ): Result<Unit>
+
+    suspend fun deleteUserSound(username: String, soundId: String, fileName: String): Result<Unit>
 }

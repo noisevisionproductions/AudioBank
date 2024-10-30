@@ -1,7 +1,7 @@
 ## Project Contributions
 
 - **Code:** [Tomasz - noise](https://github.com/noisevisionproductions/)
-- **Design and UI:** [Arkadiusz - aqlqz] – Idea creator and UI designer
+- **Design and UI:** [Arkadiusz - aalqz] – Idea creator and UI designer
 
 # Project Title
 

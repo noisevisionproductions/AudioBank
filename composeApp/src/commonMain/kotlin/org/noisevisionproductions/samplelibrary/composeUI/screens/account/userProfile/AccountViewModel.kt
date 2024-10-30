@@ -1,4 +1,4 @@
-package org.noisevisionproductions.samplelibrary.composeUI.screens.account.accountSettings
+package org.noisevisionproductions.samplelibrary.composeUI.screens.account.userProfile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
-import org.noisevisionproductions.samplelibrary.database.ForumRepository
+import org.noisevisionproductions.samplelibrary.database.PostsRepository
 import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
 import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
@@ -19,7 +19,7 @@ import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 class AccountViewModel(
     private val likeManager: LikeManager,
     private val userRepository: UserRepository,
-    private val forumRepository: ForumRepository,
+    private val postsRepository: PostsRepository,
     private val firebaseStorageRepository: FirebaseStorageRepository,
     private val sharedErrorViewModel: SharedErrorViewModel,
     private val avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl
@@ -44,7 +44,7 @@ class AccountViewModel(
         viewModelScope.launch {
             likeManager.likedPostsIds.collect { likedPostIds ->
                 val posts = likedPostIds.mapNotNull { postId ->
-                    forumRepository.getPost(postId).getOrNull()
+                    postsRepository.getPost(postId).getOrNull()
                 }
                 _likedPosts.value = posts
             }
@@ -89,6 +89,7 @@ class AccountViewModel(
                         retryAction = { loadCreatedPosts() }
                     )
                 )
+                println(e)
             }
         }
     }

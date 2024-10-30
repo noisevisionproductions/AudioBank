@@ -11,6 +11,9 @@ import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
 import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
+import org.noisevisionproductions.samplelibrary.database.PostsRepository
+import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
+import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import org.noisevisionproductions.samplelibrary.utils.UiState
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostWithCategory
@@ -18,7 +21,8 @@ import org.noisevisionproductions.samplelibrary.utils.models.PostWithCategory
 class PostViewModel(
     private val forumRepository: ForumRepository,
     private val likeManager: LikeManager,
-    private val likeRepository: LikeRepository
+    private val likeRepository: LikeRepository,
+    private val postsRepository: PostsRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -108,7 +112,7 @@ class PostViewModel(
                 else -> {
                     // If not found, load from repository
                     _individualPost.value = null // Clear previous post while loading
-                    forumRepository.getPost(postId)
+                    postsRepository.getPost(postId)
                         .onSuccess { post ->
                             postsCache[postId] = post
                             _individualPost.value = post
@@ -127,22 +131,32 @@ class PostViewModel(
 
     private fun loadPosts() {
         viewModelScope.launch {
-            val result = forumRepository.getPostsFromFirestore(
-                null,
-                selectedCategory.value,
-                selectedSortingOption.value
-            )
-            result.onSuccess { postsWithCategories ->
-                val updatedPosts = postsWithCategories.map { postWithCategories ->
-                    val post = postWithCategories.post
-                    val isLiked = likeRepository.isPostLiked(post.postId)
-                    likeManager.initializePostLikeState(post, isLiked)
-                    post.copy(isLiked = isLiked)
+            try {
+                val result = postsRepository.getPostsFromFirestore(
+                    null,
+                    selectedCategory.value,
+                    selectedSortingOption.value
+                )
+                result.onSuccess { postsWithCategories ->
+                    val updatedPosts = postsWithCategories.map { postWithCategories ->
+                        val post = postWithCategories.post
+                        val isLiked = likeRepository.isPostLiked(post.postId)
+                        likeManager.initializePostLikeState(post, isLiked)
+                        post.copy(isLiked = isLiked)
+                    }
+                    _uiState.value = UiState.Success(postsWithCategories)
+                    _posts.value = updatedPosts.distinct()
+                }.onFailure { error ->
+                    _uiState.value = UiState.Error("Error loading posts: ${error.message}")
                 }
-                _uiState.value = UiState.Success(postsWithCategories)
-                _posts.value = updatedPosts.distinct()
-            }.onFailure { error ->
-                _uiState.value = UiState.Error("Error loading posts: ${error.message}")
+            } catch (e: Exception) {
+                UserErrorInfo(
+                    message = "Nie udało się załadować postów\n${e.message}",
+                    actionType = UserErrorAction.RETRY,
+                    errorId = "LOAD_POSTS_ERROR",
+                    retryAction = { loadPosts() }
+                )
+                println(e)
             }
         }
     }
@@ -155,7 +169,7 @@ class PostViewModel(
             _isLoadingMore.value = true
 
             try {
-                val result = forumRepository.getPostsFromFirestore(
+                val result = postsRepository.getPostsFromFirestore(
                     lastLoadedPostId,
                     selectedCategoryId.value,
                     selectedSortingOption.value
@@ -187,6 +201,13 @@ class PostViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.value = UiState.Error("Nieoczekiwany błąd: ${e.message}")
+                UserErrorInfo(
+                    message = "Nie udało się załadować postów\n${e.message}",
+                    actionType = UserErrorAction.RETRY,
+                    errorId = "LOAD_MORE_POSTS_ERROR",
+                    retryAction = { loadMorePosts() }
+                )
+                println(e)
             } finally {
                 isLoading = false
                 _isLoadingMore.value = false
@@ -262,7 +283,6 @@ class PostViewModel(
             val newLikeState = !currentState.isLiked
             val newLikesCount = currentState.likesCount + if (newLikeState) 1 else -1
 
-            // Optimistically update UI
             likeManager.updatePostLike(
                 postId,
                 LikeManager.LikeState(newLikeState, newLikesCount.coerceAtLeast(0))
@@ -271,7 +291,6 @@ class PostViewModel(
             try {
                 likeRepository.toggleLikePost(postId)
                     .onSuccess {
-                        // Refresh the actual likes count from server
                         likeRepository.getPostLikesCount(postId)
                             .onSuccess { serverLikesCount ->
                                 likeManager.updatePostLike(
@@ -281,14 +300,19 @@ class PostViewModel(
                             }
                     }
                     .onFailure { error ->
-                        // Revert on failure
                         likeManager.updatePostLike(postId, currentState)
                         _uiState.value = UiState.Error("Error toggling like: ${error.message}")
                     }
             } catch (e: Exception) {
-                // Revert on exception
                 likeManager.updatePostLike(postId, currentState)
                 _uiState.value = UiState.Error("Error toggling like: ${e.message}")
+                UserErrorInfo(
+                    message = "Nie udało się zmienić polubienia\n${e.message}",
+                    actionType = UserErrorAction.RETRY,
+                    errorId = "TOOGLE_POST_LIKE_ERROR",
+                    retryAction = { togglePostLike(postId) }
+                )
+                println(e)
             }
         }
     }
