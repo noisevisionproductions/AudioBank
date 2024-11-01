@@ -16,7 +16,7 @@ expect class FirebaseStorageRepository() {
         fileData: ByteArray,
         metadata: AudioMetadata,
         onProgress: (Float) -> Unit
-    ): Result<String>
+    ): Result<AudioMetadata>
 
     suspend fun getUserSounds(
         username: String,
@@ -30,4 +30,6 @@ expect class FirebaseStorageRepository() {
     ): Result<Unit>
 
     suspend fun deleteUserSound(username: String, soundId: String, fileName: String): Result<Unit>
+    suspend fun getSoundsMetadataByIds(soundIds: List<String>): Result<List<AudioMetadata>>
+    suspend fun getSoundMetadata(soundId: String): AudioMetadata
 }

@@ -6,6 +6,7 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,12 +41,14 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
@@ -57,11 +61,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -69,8 +75,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import org.jetbrains.compose.resources.painterResource
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
+import org.noisevisionproductions.samplelibrary.interfaces.poppinsFontFamily
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_create
 import samplelibrary.composeapp.generated.resources.icon_error
@@ -83,7 +91,10 @@ fun RowWithSearchBar(
     onSearchTextChanged: (String) -> Unit,
     onChangeContent: () -> Unit,
     filters: @Composable () -> Unit,
-    tags: List<String>? = null
+    tags: List<String>? = null,
+    selectedTags: Set<String> = emptySet(),
+    onTagSelected: (String) -> Unit = {},
+    onResetTags: () -> Unit = {}
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
@@ -112,7 +123,7 @@ fun RowWithSearchBar(
         Box(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 10.dp)
+                .padding(horizontal = 10.dp, vertical = 8.dp)
                 .clip(RoundedCornerShape(25.dp))
         ) {
             TextField(
@@ -144,7 +155,7 @@ fun RowWithSearchBar(
             colorFilter = ColorFilter.tint(colors.textColorMain),
             modifier = Modifier
                 .background(colors.backgroundGrayColor)
-                .size(50.dp)
+                .size(40.dp)
                 .clickable(
                     onClick = {
                         isExpanded = !isExpanded
@@ -155,13 +166,13 @@ fun RowWithSearchBar(
         )
     }
 
-    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) 140.dp else 0.dp)
+    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) 130.dp else 0.dp)
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .height(expandedHeight)
-            .padding(8.dp)
+            .padding(vertical = 8.dp, horizontal = 16.dp)
     ) {
         if (isExpanded) {
             Row(
@@ -174,35 +185,71 @@ fun RowWithSearchBar(
             }
 
             tags?.let {
-                LazyRow(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
-                )
-                {
-                    items(tags) { tag ->
-                        TagItem(tag)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Usuń tagi",
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clickable { onResetTags() }
+                    )
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+
+                        items(tags) { tag ->
+                            TagItem(
+                                tag = tag,
+                                isSelected = selectedTags.contains(tag),
+                                onTagClick = onTagSelected
+                            )
+                        }
                     }
                 }
+
             }
         }
     }
 }
 
 @Composable
-fun TagItem(tag: String) {
+fun TagItem(
+    tag: String,
+    isSelected: Boolean,
+    onTagClick: (String) -> Unit
+) {
     Box(
         modifier = Modifier
-            .background(Color.LightGray, shape = RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .border(2.dp, colors.barColor, RoundedCornerShape(16.dp))
+            .background(
+                if (isSelected) colors.primaryBackgroundColor else Color.Transparent,
+                shape = RoundedCornerShape(16.dp)
+            )
             .padding(8.dp)
+            .clickable { onTagClick(tag) },
     ) {
-        Text(text = tag)
+        Text(
+            text = tag,
+            color = CustomColors.black60
+        )
     }
 }
 
 @Composable
-fun DropDownMenuWithItems(label: String, options: List<String>, onItemSelected: (String) -> Unit) {
+fun DropDownMenuWithItems(
+    label: String,
+    options: List<String>,
+    onItemSelected: (String) -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf(label) }
 
@@ -211,7 +258,7 @@ fun DropDownMenuWithItems(label: String, options: List<String>, onItemSelected: 
             modifier = Modifier
                 .clip(RoundedCornerShape(16.dp))
                 .border(2.dp, colors.barColor, RoundedCornerShape(16.dp))
-                .background(Color.Transparent)
+                .background(if (selectedItem == "Sortowanie") Color.Transparent else colors.primaryBackgroundColor)
                 .clickable { expanded = !expanded }
                 .padding(16.dp)
         ) {
@@ -230,9 +277,9 @@ fun DropDownMenuWithItems(label: String, options: List<String>, onItemSelected: 
         ) {
             DropdownMenuItem(
                 onClick = {
-                    selectedItem = label // Reset to default label
+                    selectedItem = label
                     expanded = false
-                    onItemSelected("") // Notify that filters should be cleared
+                    onItemSelected("")
                 },
                 modifier = Modifier
                     .background(Color.Transparent)
@@ -308,7 +355,8 @@ fun ScrollingText(fileName: String, modifier: Modifier = Modifier) {
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Visible,
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.body1,
+                fontSize = 14.sp,
                 modifier = Modifier
                     .offset { IntOffset(offsetX.value.toInt(), 0) }
                     .width(with(LocalDensity.current) { textWidth.toDp() })
@@ -445,32 +493,62 @@ fun CustomTopAppBar(
     onBackPressed: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    TopAppBar(
-        title = {
-            Text(
-                text = title,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        },
-        navigationIcon = onNavigateBack?.let {
-            {
-                IconButton(onClick = onNavigateBack) {
-                    IconButton(onClick = {
-                        onBackPressed?.invoke() ?: onNavigateBack()
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentHeight()
+    ) {
+        TopAppBar(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(75.dp),
+            title = {
+                Text(
+                    text = title,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    style = TextStyle(
+                        fontFamily = poppinsFontFamily(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp
+                    ),
+                    color = CustomColors.black100,
+                )
+            },
+            navigationIcon = onNavigateBack?.let {
+                {
+                    IconButton(onClick = onNavigateBack) {
+                        IconButton(onClick = {
+                            onBackPressed?.invoke() ?: onNavigateBack()
+                        }) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
                     }
                 }
-            }
-        },
-        actions = actions,
-        backgroundColor = colors.primaryBackgroundColor,
-        contentColor = colors.textColorMain
-    )
+            },
+            actions = actions,
+            backgroundColor = colors.primaryBackgroundColor,
+            contentColor = colors.textColorMain,
+            elevation = 0.dp
+        )
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Black.copy(alpha = 0.4f),
+                            colors.backgroundColorForNewContent
+                        )
+                    )
+                )
+        )
+    }
 }
 
 @Composable
@@ -480,7 +558,8 @@ expect fun PropertiesMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     onOptionSelected: (String) -> Unit,
-    alignRight: Boolean
+    alignRight: Boolean,
+    modifier: Modifier = Modifier
 )
 
 @Composable

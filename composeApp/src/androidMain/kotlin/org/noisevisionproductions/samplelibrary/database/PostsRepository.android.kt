@@ -17,6 +17,7 @@ actual class PostsRepository {
     private val firestore = Firebase.firestore
     private val postsCollection = firestore.collection("posts")
     private val forumRepository = ForumRepository()
+
     actual suspend fun createPost(
         title: String,
         content: String,

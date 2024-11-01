@@ -35,6 +35,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,6 +47,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.CustomTopAppBar
 import org.noisevisionproductions.samplelibrary.composeUI.DropDownMenuWithItems
 import org.noisevisionproductions.samplelibrary.composeUI.RowWithSearchBar
 import org.noisevisionproductions.samplelibrary.composeUI.CustomAlertDialog
+import org.noisevisionproductions.samplelibrary.composeUI.CustomColors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
@@ -55,6 +58,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWind
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
 import org.noisevisionproductions.samplelibrary.database.PostsRepository
 import org.noisevisionproductions.samplelibrary.interfaces.formatTimeAgo
+import org.noisevisionproductions.samplelibrary.interfaces.poppinsFontFamily
 import org.noisevisionproductions.samplelibrary.utils.UiState
 import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
 import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
@@ -232,15 +236,14 @@ fun MainContentWithForum(
             modifier = Modifier
                 .padding(horizontal = 10.dp, vertical = 5.dp),
             color = colors.textColorMain,
-            fontSize = 16.sp,
+            fontSize = 14.sp,
             textAlign = TextAlign.Left
         )
         Text(
             text = "Znajdziesz tutaj aktywne posty, które zawierają ostatnią aktywność",
-            style = MaterialTheme.typography.body1,
-            fontSize = 13.sp,
+            style = MaterialTheme.typography.h5,
+            fontSize = 10.sp,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            color = colors.hintTextColorDark,
             textAlign = TextAlign.Left,
             lineHeight = 16.sp
         )
@@ -454,9 +457,9 @@ fun PostModelItem(
         ) {
             Text(
                 text = post.title,
-                style = MaterialTheme.typography.h6,
-                fontSize = 15.sp,
-                lineHeight = 15.sp,
+                style = MaterialTheme.typography.body1,
+                fontSize = 11.sp,
+                lineHeight = 11.sp,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -485,13 +488,21 @@ fun PostModelItem(
                     Row {
                         Text(
                             text = "Zapostował: ",
-                            color = colors.hintTextColorMedium,
-                            fontSize = textSize
+                            style = TextStyle(
+                                fontFamily = poppinsFontFamily(),
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 10.sp
+                            ),
+                            color = CustomColors.black60,
                         )
                         Text(
                             text = post.username,
-                            color = colors.hintTextColorLight,
-                            fontSize = textSize
+                            style = TextStyle(
+                                fontFamily = poppinsFontFamily(),
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 10.sp
+                            ),
+                            color = CustomColors.primary60,
                         )
                     }
                 }
@@ -502,15 +513,23 @@ fun PostModelItem(
                 Row {
                     Text(
                         text = date,
-                        color = colors.hintTextColorMedium,
-                        fontSize = textSize
+                        style = TextStyle(
+                            fontFamily = poppinsFontFamily(),
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 10.sp
+                        ),
+                        color = CustomColors.black60,
                     )
                 }
                 Row {
                     Text(
                         text = "Odpowiedzi: ",
-                        color = colors.hintTextColorMedium,
-                        fontSize = textSize
+                        style = TextStyle(
+                            fontFamily = poppinsFontFamily(),
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 10.sp
+                        ),
+                        color = CustomColors.black60,
                     )
 
                     if (isLoadingComments) {
@@ -522,19 +541,31 @@ fun PostModelItem(
                     } else {
                         Text(
                             text = commentCount.toString(),
-                            color = colors.hintTextColorLight,
-                            fontSize = textSize
+                            style = TextStyle(
+                                fontFamily = poppinsFontFamily(),
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 10.sp
+                            ),
+                            color = CustomColors.primary60,
                         )
                     }
                     Text(
                         text = " | W: ",
-                        color = colors.hintTextColorMedium,
-                        fontSize = textSize
+                        style = TextStyle(
+                            fontFamily = poppinsFontFamily(),
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 10.sp
+                        ),
+                        color = CustomColors.black60,
                     )
                     Text(
                         text = categoryName,
-                        color = colors.hintTextColorLight,
-                        fontSize = textSize
+                        style = TextStyle(
+                            fontFamily = poppinsFontFamily(),
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 10.sp
+                        ),
+                        color = CustomColors.primary60,
                     )
                 }
             }
@@ -551,17 +582,24 @@ fun PostModelItem(
             ) {
                 Text(
                     text = "Najnowszy komentarz:",
-                    style = MaterialTheme.typography.caption,
-                    color = colors.hintTextColorMedium,
+                    style = TextStyle(
+                        fontFamily = poppinsFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 10.sp
+                    ),
+                    color = CustomColors.black60,
                     overflow = TextOverflow.Ellipsis,
                     fontSize = textSize
                 )
                 Text(
                     text = lastComment?.timestamp?.let { formatTimeAgo(it) } ?: "-",
-                    style = MaterialTheme.typography.caption,
-                    color = colors.hintTextColorLight,
+                    style = TextStyle(
+                        fontFamily = poppinsFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 10.sp
+                    ),
+                    color = CustomColors.primary60,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = textSize
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -572,16 +610,22 @@ fun PostModelItem(
 
                 Text(
                     text = "Od:",
-                    style = MaterialTheme.typography.caption,
-                    color = colors.hintTextColorMedium,
-                    fontSize = textSize
+                    style = TextStyle(
+                        fontFamily = poppinsFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 10.sp
+                    ),
+                    color = CustomColors.black60,
                 )
                 Text(
                     text = lastComment?.username ?: "-",
-                    style = MaterialTheme.typography.caption,
-                    color = colors.hintTextColorLight,
+                    style = TextStyle(
+                        fontFamily = poppinsFontFamily(),
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 10.sp
+                    ),
+                    color = CustomColors.primary60,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = textSize
                 )
             }
         }

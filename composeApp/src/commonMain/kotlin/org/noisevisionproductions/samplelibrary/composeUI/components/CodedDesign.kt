@@ -12,17 +12,26 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 
 
 @Composable
-fun BackgroundWithCircles() {
+fun BackgroundWithCircles(
+    backgroundColor: Color,
+    modifier: Modifier = Modifier
+) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
-            .background(colors.backgroundDarkGrayColor)
+            .background(backgroundColor)
     ) {
         Canvas(
             modifier = Modifier
@@ -53,11 +62,98 @@ fun BackgroundWithCircles() {
 }
 
 @Composable
-fun DefaultAvatar() {
+fun BackgroundWithCirclesWithAvatar(
+    backgroundColor: Color,
+    modifier: Modifier = Modifier
+) {
+    // Use the modifier passed in and apply a background color
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(backgroundColor)
+    ) {
+        // Create a Canvas that fills the available space
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            val canvasWidth = size.width
+            val canvasHeight = size.height
+
+            // Define circle radius as a fraction of canvas height
+            val circleRadius = canvasHeight * 0.7f  // Circles will extend beyond the canvas
+
+            // Draw the first circle in the top-left corner
+            drawCircle(
+                color = Color(0x70B6E7E7),
+                radius = circleRadius,
+                center = Offset(
+                    x = -circleRadius * 0.0f,
+                    y = -circleRadius * -0.2f
+                )
+            )
+
+            // Draw the second circle overlapping the first one
+            drawCircle(
+                color = Color(0x70B6E7E7),
+                radius = circleRadius,
+                center = Offset(
+                    x = canvasWidth * 0.25f,
+                    y = -circleRadius * 0.2f
+                )
+            )
+        }
+    }
+}
+
+fun Modifier.bottomShadow() = this
+    .graphicsLayer(clip = false) // Allow drawing outside the bounds
+    .drawWithContent {
+        drawContent() // Draw the Row's content first
+        // Now draw the shadow
+        val shadowHeight = 12.dp.toPx()
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.Black.copy(alpha = 0.4f),
+                    Color.Transparent
+                ),
+                startY = size.height,
+                endY = size.height + shadowHeight
+            ),
+            topLeft = Offset(0f, size.height),
+            size = Size(size.width, shadowHeight)
+        )
+    }
+
+fun Modifier.aboveShadow() = this
+    .graphicsLayer(clip = false) // Allow drawing outside the bounds
+    .drawWithContent {
+        // Draw the content first
+        drawContent()
+
+        // Now draw the shadow above
+        val shadowHeight = 12.dp.toPx()
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.Black.copy(alpha = 0.4f),
+                    Color.Transparent
+                ),
+                startY = 0f, // Start gradient at the top
+                endY = shadowHeight // Extend below
+            ),
+            topLeft = Offset(0f, -shadowHeight), // Position above the layout
+            size = Size(size.width, shadowHeight)
+        )
+    }
+
+@Composable
+fun DefaultAvatar(modifier: Modifier = Modifier) {
     Icon(
         imageVector = Icons.Default.AccountCircle,
         contentDescription = "Default Avatar",
-        modifier = Modifier.size(70.dp),
+        modifier = modifier.size(70.dp),
         tint = colors.backgroundGrayColor
     )
 }

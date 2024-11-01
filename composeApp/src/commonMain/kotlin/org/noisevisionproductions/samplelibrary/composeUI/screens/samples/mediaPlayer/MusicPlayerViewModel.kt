@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
-import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 import org.noisevisionproductions.samplelibrary.utils.decodeFileName
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 
 class MusicPlayerViewModel(
     private val musicPlayerService: MusicPlayerService
@@ -19,12 +19,24 @@ class MusicPlayerViewModel(
         val currentlyPlayingUrl: String? = null,
         val selectedFileName: String? = null,
         val progress: Float = 0f,
-        val currentSongIndex: Int = 0
+        val currentSongIndex: Int = 0,
+        val isCompleted: Boolean = false,
+        val bpm: String = "-",
+        val tone: String = "-",
+        val songId: String = "",
+        val tags: List<String> = emptyList()
     )
 
     sealed class PlayerAction {
-        data class PlayPause(val songUrl: String, val fileName: String, val index: Int) :
-            PlayerAction()
+        data class PlayPause(
+            val songUrl: String,
+            val fileName: String,
+            val index: Int,
+            val bpm: String = "-",
+            val tone: String = "-",
+            val songId: String = "",
+            val tags: List<String> = emptyList()
+        ) : PlayerAction()
 
         data object Next : PlayerAction()
         data object Previous : PlayerAction()
@@ -39,7 +51,11 @@ class MusicPlayerViewModel(
             is PlayerAction.PlayPause -> handlePlayPause(
                 action.songUrl,
                 action.fileName,
-                action.index
+                action.index,
+                action.bpm,
+                action.tone,
+                action.songId,
+                action.tags
             )
 
             is PlayerAction.Next -> playNextSong(currentPlaylist)
@@ -48,7 +64,15 @@ class MusicPlayerViewModel(
         }
     }
 
-    private fun handlePlayPause(songUrl: String, fileName: String, newIndex: Int) {
+    private fun handlePlayPause(
+        songUrl: String,
+        fileName: String,
+        newIndex: Int,
+        bpm: String,
+        tone: String,
+        songId: String,
+        tags: List<String>
+    ) {
         viewModelScope.launch {
             val currentState = _playerState.value
 
@@ -60,52 +84,93 @@ class MusicPlayerViewModel(
 
                 currentState.currentlyPlayingUrl != null && currentState.currentlyPlayingUrl != songUrl -> {
                     musicPlayerService.stopAudio()
-                    playNewSong(songUrl, fileName, newIndex)
+                    playNewSong(songUrl, fileName, newIndex, bpm, tone, songId, tags)
                 }
 
                 currentState.currentlyPlayingUrl == songUrl && !currentState.isPlaying -> {
-                    resumeCurrentSong()
+                    if (currentState.isCompleted) {
+                        // Preserve the metadata when replaying the completed song
+                        playNewSong(
+                            songUrl = songUrl,
+                            fileName = currentState.selectedFileName ?: fileName,
+                            newIndex = currentState.currentSongIndex,
+                            bpm = currentState.bpm,
+                            tone = currentState.tone,
+                            songId = currentState.songId,
+                            tags = currentState.tags
+                        )
+                    } else {
+                        resumeCurrentSong()
+                    }
                 }
 
-                else -> playNewSong(songUrl, fileName, newIndex)
+                else -> playNewSong(songUrl, fileName, newIndex, bpm, tone, songId, tags)
             }
         }
     }
 
-    private suspend fun playNewSong(songUrl: String, fileName: String, newIndex: Int) {
+    private suspend fun playNewSong(
+        songUrl: String,
+        fileName: String,
+        newIndex: Int,
+        bpm: String,
+        tone: String,
+        songId: String,
+        tags: List<String>
+    ) {
         musicPlayerService.playAudioFromUrl(
             audioUrl = songUrl,
             currentlyPlayingUrl = _playerState.value.currentlyPlayingUrl,
             onCompletion = {
-                updatePlayingState(false)
+                updatePlayingState(false, isCompleted = true)
                 _playerState.update { it.copy(progress = 0f) }
             },
             onProgressUpdate = { newProgress ->
                 _playerState.update { it.copy(progress = newProgress) }
             }
         )
-        updatePlayingState(true, songUrl, fileName, newIndex)
+        updatePlayingState(
+            true,
+            songUrl,
+            fileName,
+            newIndex,
+            isCompleted = false,
+            bpm = bpm,
+            tone = tone,
+            songId = songId,
+            tags = tags
+        )
     }
 
     private fun resumeCurrentSong() {
         musicPlayerService.resumeAudio { newProgress ->
             _playerState.update { it.copy(progress = newProgress) }
         }
-        updatePlayingState(true)
+        updatePlayingState(true, isCompleted = false)
     }
 
     private fun updatePlayingState(
         isPlaying: Boolean,
         url: String? = _playerState.value.currentlyPlayingUrl,
         fileName: String? = _playerState.value.selectedFileName,
-        index: Int = _playerState.value.currentSongIndex
+        index: Int = _playerState.value.currentSongIndex,
+        isCompleted: Boolean = _playerState.value.isCompleted,
+        bpm: String = _playerState.value.bpm,
+        tone: String = _playerState.value.tone,
+        songId: String = _playerState.value.songId,
+        tags: List<String> = _playerState.value.tags
     ) {
         _playerState.update {
             it.copy(
                 isPlaying = isPlaying,
                 currentlyPlayingUrl = url,
                 selectedFileName = fileName,
-                currentSongIndex = index
+                currentSongIndex = index,
+                isCompleted = isCompleted,
+                bpm = bpm,
+                tone = tone,
+                songId = songId,
+                tags = tags
             )
         }
     }
@@ -115,13 +180,16 @@ class MusicPlayerViewModel(
             musicPlayerService.stopAudio()
         }
         viewModelScope.launch {
-            val nextIndex = (_playerState.value.currentSongIndex + 1)
-                .coerceIn(0, playlist.size - 1)
+            val nextIndex = (_playerState.value.currentSongIndex + 1) % playlist.size
 
             playlist.getOrNull(nextIndex)?.let { nextSong ->
-                nextSong.url?.let {
+                nextSong.url?.let { url ->
                     val decodedFileName = decodeFileName(nextSong.fileName)
-                    handlePlayPause(nextSong.url, decodedFileName, nextIndex)
+                    val bpm = nextSong.bpm ?: "-"
+                    val tone = nextSong.tone ?: "-"
+                    val songId = nextSong.id ?: ""
+                    val tags = nextSong.tags
+                    handlePlayPause(url, decodedFileName, nextIndex, bpm, tone, songId, tags)
                 }
             }
         }
@@ -132,13 +200,17 @@ class MusicPlayerViewModel(
             musicPlayerService.stopAudio()
         }
         viewModelScope.launch {
-            val previousIndex = (_playerState.value.currentSongIndex - 1)
-                .coerceIn(0, playlist.size - 1)
+            val previousIndex =
+                (_playerState.value.currentSongIndex - 1 + playlist.size) % playlist.size
 
             playlist.getOrNull(previousIndex)?.let { previousSong ->
-                previousSong.url?.let {
+                previousSong.url?.let { url ->
                     val decodedFileName = decodeFileName(previousSong.fileName)
-                    handlePlayPause(previousSong.url, decodedFileName, previousIndex)
+                    val bpm = previousSong.bpm ?: "-"
+                    val tone = previousSong.tone ?: "-"
+                    val songId = previousSong.id ?: ""
+                    val tags = previousSong.tags
+                    handlePlayPause(url, decodedFileName, previousIndex, bpm, tone, songId, tags)
                 }
             }
         }

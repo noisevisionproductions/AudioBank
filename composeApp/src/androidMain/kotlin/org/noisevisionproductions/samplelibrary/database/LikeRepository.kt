@@ -3,13 +3,10 @@ package org.noisevisionproductions.samplelibrary.database
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
-import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 import org.noisevisionproductions.samplelibrary.utils.models.UserModel
 
 actual class LikeRepository {
@@ -125,4 +122,26 @@ actual class LikeRepository {
             Result.failure(e)
         }
     }
+
+    actual suspend fun toggleSoundLike(soundId: String) {
+        val userId = authService.getCurrentUserId()
+        if (userId != null) {
+            val userRef = firestore.collection("users").document(userId)
+            firestore.runTransaction { transaction ->
+                val userSnapshot = transaction.get(userRef)
+                val currentLikedSounds =
+                    (userSnapshot.get("likedSounds") as? List<*>)?.filterIsInstance<String>()
+                        ?: listOf()
+
+                val updatedLikedSounds = if (currentLikedSounds.contains(soundId)) {
+                    currentLikedSounds - soundId
+                } else {
+                    currentLikedSounds + soundId
+                }
+                transaction.update(userRef, "likedSounds", updatedLikedSounds)
+            }
+        }
+    }
+
+
 }

@@ -10,6 +10,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.sounds
 import org.noisevisionproductions.samplelibrary.auth.UserViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userProfile.AccountViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userSounds.UserSoundsViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.exploreMenu.DynamicListViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.mediaPlayer.MusicPlayerViewModel
 import org.noisevisionproductions.samplelibrary.database.CommentRepository
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
@@ -43,4 +44,5 @@ expect class ViewModelFactory(
     fun accountViewModel(): AccountViewModel
     fun navigationViewModel(): NavigationViewModel
     fun userSoundsViewModel(): UserSoundsViewModel
+    fun dynamicListViewModel(): DynamicListViewModel
 }

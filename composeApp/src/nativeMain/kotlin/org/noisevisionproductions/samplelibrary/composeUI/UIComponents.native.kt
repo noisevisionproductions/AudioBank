@@ -1,6 +1,11 @@
 package org.noisevisionproductions.samplelibrary.composeUI
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+
+@Composable
+actual fun PlatformAvatarImage(avatarPath: String) {
+}
 
 @Composable
 actual fun PropertiesMenu(
@@ -9,10 +14,7 @@ actual fun PropertiesMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     onOptionSelected: (String) -> Unit,
-    alignRight: Boolean
+    alignRight: Boolean,
+    modifier: Modifier
 ) {
-}
-
-@Composable
-actual fun PlatformAvatarImage(avatarPath: String) {
 }

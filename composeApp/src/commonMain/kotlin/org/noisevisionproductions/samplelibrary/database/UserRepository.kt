@@ -9,7 +9,9 @@ expect class UserRepository() {
     suspend fun getUsernameById(userId: String): String?
     suspend fun getUserLabelById(userId: String): String?
     suspend fun updateAvatarUrl(url: String)
+    suspend fun getCurrentUserAvatarPath(): String?
     suspend fun getLikedPosts(): Result<List<PostModel>>
     suspend fun removeLikedPost(postId: String)
     suspend fun getPostsByIds(postIds: List<String>): List<PostModel>
+    suspend fun getLikedSounds(): List<String>
 }

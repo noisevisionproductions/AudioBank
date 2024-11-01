@@ -1,18 +1,14 @@
 package org.noisevisionproductions.samplelibrary.composeUI
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.DropdownMenu
 import androidx.compose.material.DropdownMenuItem
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,11 +17,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.compose.rememberAsyncImagePainter
-import coil.compose.rememberImagePainter
 import coil.request.ImageRequest
-import org.jetbrains.compose.resources.painterResource
-import org.noisevisionproductions.audiobank.R
 import org.noisevisionproductions.samplelibrary.MainActivity
 import org.noisevisionproductions.samplelibrary.interfaces.checkAndRequestStoragePermission
 
@@ -36,12 +28,13 @@ actual fun PropertiesMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     onOptionSelected: (String) -> Unit,
-    alignRight: Boolean
+    alignRight: Boolean,
+    modifier: Modifier
 ) {
     val activity = LocalContext.current as? MainActivity
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .wrapContentSize(if (alignRight) Alignment.TopEnd else Alignment.TopStart)
     ) {
         DropdownMenu(

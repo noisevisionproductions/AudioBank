@@ -1,14 +1,17 @@
 package org.noisevisionproductions.samplelibrary.utils.metadata
 
+import org.noisevisionproductions.samplelibrary.interfaces.getCurrentTimestamp
+
 data class AudioMetadata(
-    val id: String? = null,
+    val id: String? = "",
     val fileName: String,
-    val fileExtension: String? = null,
-    val duration: String? = null,
-    val url: String? = null,
-    val timestamp: String? = null,
-    val contentType: String? = null,
-    val bpm: String? = null,
-    val tone: String? = null,
-    val tags: List<String> = emptyList()
+    val fileExtension: String? = "",
+    val duration: String? = "",
+    val url: String? = "",
+    val timestamp: String? = getCurrentTimestamp(),
+    val contentType: String? = "",
+    val bpm: String? = "",
+    val tone: String? = "",
+    val tags: List<String> = emptyList(),
+    val isLiked: Boolean = false
 )

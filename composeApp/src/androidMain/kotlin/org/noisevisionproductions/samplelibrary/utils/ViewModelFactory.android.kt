@@ -2,14 +2,18 @@ package org.noisevisionproductions.samplelibrary.utils
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.auth.UserViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userProfile.AccountViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.userSounds.UserSoundsViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.dataStatesManagement.SharedSoundEventsManager
+import org.noisevisionproductions.samplelibrary.composeUI.screens.dataStatesManagement.SoundEvent
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
 import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWindow.PostViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.exploreMenu.DynamicListViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.mediaPlayer.MusicPlayerViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadSoundViewModel
 import org.noisevisionproductions.samplelibrary.database.CommentRepository
@@ -37,6 +41,7 @@ actual class ViewModelFactory actual constructor(
     private val avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl,
     private val postsRepository: PostsRepository
 ) : ViewModelProvider.Factory {
+    private val sharedSoundEventsManager = SharedSoundEventsManager
 
     actual fun createPostViewModel(): PostViewModel {
         return PostViewModel(
@@ -64,11 +69,17 @@ actual class ViewModelFactory actual constructor(
     }
 
     actual fun uploadSoundViewModel(): UploadSoundViewModel {
-        return UploadSoundViewModel(firebaseStorageRepository, userRepository)
+        return UploadSoundViewModel(
+            firebaseStorageRepository,
+            userRepository,
+            sharedSoundViewModel = SharedSoundEventsManager
+        )
     }
 
     actual fun musicPlayerViewModel(): MusicPlayerViewModel {
-        return MusicPlayerViewModel(musicPlayerService)
+        return MusicPlayerViewModel(
+            musicPlayerService
+        )
     }
 
     actual fun accountViewModel(): AccountViewModel {
@@ -89,7 +100,17 @@ actual class ViewModelFactory actual constructor(
     actual fun userSoundsViewModel(): UserSoundsViewModel {
         return UserSoundsViewModel(
             storageRepository = firebaseStorageRepository,
-            userRepository = userRepository
+            userRepository = userRepository,
+            sharedSoundEventsManager = sharedSoundEventsManager
+        )
+    }
+
+    actual fun dynamicListViewModel(): DynamicListViewModel {
+        return DynamicListViewModel(
+            firebaseStorageRepository = firebaseStorageRepository,
+            likeRepository = likeRepository,
+            userRepository = userRepository,
+            sharedSoundEventsManager = sharedSoundEventsManager
         )
     }
 
@@ -104,6 +125,7 @@ actual class ViewModelFactory actual constructor(
             modelClass.isAssignableFrom(AccountViewModel::class.java) -> accountViewModel() as T
             modelClass.isAssignableFrom(NavigationViewModel::class.java) -> navigationViewModel() as T
             modelClass.isAssignableFrom(UserSoundsViewModel::class.java) -> userSoundsViewModel() as T
+            modelClass.isAssignableFrom(DynamicListViewModel::class.java) -> dynamicListViewModel() as T
             else -> throw IllegalArgumentException("Unknown ViewModel class")
         }
     }

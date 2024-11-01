@@ -70,6 +70,20 @@ actual class UserRepository {
         }
     }
 
+    actual suspend fun getCurrentUserAvatarPath(): String? {
+        return withContext(Dispatchers.IO) {
+            try {
+                val userId = firebaseAuth.currentUser?.uid
+                    ?: throw IllegalStateException("User not logged in")
+                val userDocument = firestore.collection("users").document(userId).get().await()
+                userDocument.getString("avatarUrl")
+            } catch (e: Exception) {
+                Log.e("UserRepository", "Error fetching avatar URL", e)
+                null
+            }
+        }
+    }
+
     actual suspend fun updateAvatarUrl(url: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -106,7 +120,9 @@ actual class UserRepository {
     actual suspend fun getLikedPosts(): Result<List<PostModel>> =
         withContext(Dispatchers.IO) {
             try {
-                val userId = getCurrentUserId() ?: return@withContext Result.failure(IllegalStateException("User not logged in"))
+                val userId = getCurrentUserId() ?: return@withContext Result.failure(
+                    IllegalStateException("User not logged in")
+                )
 
                 val userDocument = firestore.collection("users").document(userId).get().await()
                 val userModel = userDocument.toObject(UserModel::class.java)
@@ -129,7 +145,6 @@ actual class UserRepository {
                 Result.failure(e)
             }
         }
-
 
     actual suspend fun removeLikedPost(postId: String) {
         val uid = getCurrentUserId()
@@ -164,4 +179,16 @@ actual class UserRepository {
             throw Exception("Nie udało się pobrać ID użytkownika.")
         }
     }
+
+    actual suspend fun getLikedSounds(): List<String> {
+        val userId = getCurrentUserId() ?: return emptyList()
+        return try {
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            (userDoc.get("likedSounds") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
+        } catch (e: Exception) {
+            println(e)
+            emptyList()
+        }
+    }
+
 }

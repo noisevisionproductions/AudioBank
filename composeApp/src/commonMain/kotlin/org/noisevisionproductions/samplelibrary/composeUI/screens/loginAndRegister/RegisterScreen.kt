@@ -69,7 +69,7 @@ fun RegisterScreen(
             },
         contentAlignment = Alignment.BottomCenter
     ) {
-        BackgroundWithCircles()
+        BackgroundWithCircles(colors.backgroundDarkGrayColor)
         Column(
             modifier = Modifier
                 .padding(16.dp)

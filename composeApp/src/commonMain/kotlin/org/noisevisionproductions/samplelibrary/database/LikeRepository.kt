@@ -7,4 +7,5 @@ expect class LikeRepository() {
     suspend fun getPostLikesCount(postId: String): Result<Int>
     suspend fun isCommentLiked(commentId: String): Boolean
     suspend fun toggleLikeComment(commentId: String): Result<Unit>
+    suspend fun toggleSoundLike(soundId: String)
 }

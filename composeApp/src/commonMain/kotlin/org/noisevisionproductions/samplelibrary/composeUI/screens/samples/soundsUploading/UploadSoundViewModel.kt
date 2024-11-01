@@ -7,17 +7,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import org.noisevisionproductions.samplelibrary.database.UserRepository
+import org.noisevisionproductions.samplelibrary.composeUI.screens.dataStatesManagement.SharedSoundEventsManager
+import org.noisevisionproductions.samplelibrary.composeUI.screens.dataStatesManagement.SoundEvent
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
+import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
 import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import org.noisevisionproductions.samplelibrary.utils.UploadStatus
-import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 import org.noisevisionproductions.samplelibrary.utils.dataClasses.FileData
+import org.noisevisionproductions.samplelibrary.utils.metadata.AudioMetadata
 
 class UploadSoundViewModel(
     private val storageService: FirebaseStorageRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val sharedSoundViewModel: SharedSoundEventsManager
 ) : ViewModel() {
     private val _username = MutableStateFlow<String?>(null)
     val username: StateFlow<String?> = _username.asStateFlow()
@@ -68,7 +71,7 @@ class UploadSoundViewModel(
                     fileName = modifiedFileName,
                     bpm = file.bpmValue,
                     tone = file.toneValue,
-                    tags = file.tags
+                    tags = file.tags,
                 )
 
                 val result = storageService.uploadSoundsToStorage(
@@ -84,13 +87,21 @@ class UploadSoundViewModel(
                 )
 
                 if (result.isSuccess) {
-                    _uploadStatuses.value = _uploadStatuses.value.toMutableMap().also {
-                        it[modifiedFileName] = UploadStatus.SUCCESS
+                    val savedMetadata = result.getOrNull()
+                    if (savedMetadata != null) {
+                        _uploadStatuses.value = _uploadStatuses.value.toMutableMap().also {
+                            it[modifiedFileName] = UploadStatus.SUCCESS
+                        }
+
+                        sharedSoundViewModel.emitEvent(SoundEvent.SoundUploaded(savedMetadata))
+                    } else {
+                        throw Exception("Failed to get saved metadata")
                     }
                 } else {
                     _uploadStatuses.value = _uploadStatuses.value.toMutableMap().also {
                         it[modifiedFileName] = UploadStatus.ERROR
                     }
+                    throw Exception(result.exceptionOrNull()?.message ?: "Unknown error")
                 }
 
             } catch (e: Exception) {
@@ -151,12 +162,10 @@ class UploadSoundViewModel(
         return _selectedFiles.value.getOrNull(index)?.tags ?: emptyList()
     }
 
-    // Add new files (called after picking files)
     fun onFilesPicked(files: List<FileData>) {
         _selectedFiles.value = files.take(5)
     }
 
-    // Remove file at specific index
     fun removeFile(index: Int) {
         _selectedFiles.value = _selectedFiles.value.toMutableList().also {
             it.removeAt(index)

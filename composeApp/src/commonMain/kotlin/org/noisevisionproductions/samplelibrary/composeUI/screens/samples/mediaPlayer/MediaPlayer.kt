@@ -25,12 +25,13 @@ fun PlayPauseButton(
     currentlyPlayingUrl: String?,
     songUrl: String,
     onPlayPauseClick: () -> Unit,
-    iconColor: Color? = null
+    iconColor: Color? = null,
+    modifier: Modifier = Modifier
 ) {
     Image(
         painterResource(if (isPlaying && currentlyPlayingUrl == songUrl) Res.drawable.icon_pause else Res.drawable.icon_play),
         contentDescription = if (isPlaying && currentlyPlayingUrl == songUrl) "Pause" else "Play",
-        modifier = Modifier
+        modifier = modifier
             .clickable { onPlayPauseClick() }
             .size(40.dp),
         colorFilter = iconColor?.let { ColorFilter.tint(it) }

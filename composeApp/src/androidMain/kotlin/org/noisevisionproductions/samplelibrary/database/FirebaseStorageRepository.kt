@@ -20,6 +20,8 @@ import java.io.FileNotFoundException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
 
 actual class FirebaseStorageRepository {
     private val storage = FirebaseStorage.getInstance()
@@ -28,85 +30,80 @@ actual class FirebaseStorageRepository {
 
     // Cache dla URL-i
     private val urlCache = ConcurrentHashMap<String, String>()
-
     actual suspend fun listFilesWithMetadata(
         directoryPath: String,
         continuationToken: String?
     ): Pair<List<AudioMetadata>, String?> {
         return try {
-            val storageReference = storage.reference.child(directoryPath)
+            val storageReference = storage.reference.child("samples")
             Log.d("FirebaseStorageService", "Listing files in directory: $directoryPath")
 
-            // Fetch folders
+            // Fetch user directories under "samples"
             val foldersResult = if (continuationToken != null) {
                 storageReference.list(maxResultsPerPage, continuationToken).await()
             } else {
                 storageReference.list(maxResultsPerPage).await()
             }
 
-            Log.d("FirebaseStorageService", "Found ${foldersResult.prefixes.size} folders")
+            Log.d("FirebaseStorageService", "Found ${foldersResult.prefixes.size} user folders")
 
             // Parallel fetching of file metadata
             val folderDataList = coroutineScope {
-                foldersResult.prefixes.map { folderRef ->
-                    async {
-                        try {
-                            val filesInFolder = folderRef.list(1).await()
-                            val fileRef = filesInFolder.items.firstOrNull() ?: return@async null
+                foldersResult.prefixes.flatMap { userFolderRef ->
+                    userFolderRef.listAll().await().prefixes.mapNotNull { soundFolderRef ->
+                        async {
+                            try {
+                                val soundId = soundFolderRef.name  // Use folder name as soundId
+                                val fileRef = soundFolderRef.list(1).await().items.firstOrNull()
+                                    ?: return@async null
 
-                            // Fetch file metadata to get 'firestore_doc_id'
-                            val metadata = fileRef.metadata.await()
-                            val firestoreDocId = metadata.getCustomMetadata("firestore_doc_id")
-
-                            firestoreDocId?.let { Pair(fileRef, it) }
-                        } catch (e: Exception) {
-                            Log.e(
-                                "FirebaseStorageService",
-                                "Error processing folder ${folderRef.path}",
-                                e
-                            )
-                            null
+                                Pair(fileRef, soundId)
+                            } catch (e: Exception) {
+                                Log.e(
+                                    "FirebaseStorageService",
+                                    "Error processing folder ${soundFolderRef.path}",
+                                    e
+                                )
+                                null
+                            }
                         }
                     }
                 }.awaitAll().filterNotNull()
             }
 
-            // Collect all Firestore Doc IDs
+            // Collect Firestore Doc IDs from folder names directly
             val firestoreDocIds = folderDataList.map { it.second }.distinct()
 
-            // Fetch all Firestore documents in one batch
-            val firestoreMetadata = firestore.collection("audio_metadata")
-                .whereIn(FieldPath.documentId(), firestoreDocIds)
-                .get()
-                .await()
-                .associateBy { it.id }
-
+            // Fetch metadata in batch from Firestore
+            val firestoreMetadata = if (firestoreDocIds.isNotEmpty()) {
+                firestore.collection("audio_metadata")
+                    .whereIn(FieldPath.documentId(), firestoreDocIds)
+                    .get()
+                    .await()
+                    .associateBy { it.id }
+            } else {
+                emptyMap()
+            }
             Log.d("FirebaseStorageService", "Fetched ${firestoreMetadata.size} metadata records")
 
             // Build AudioMetadata objects
-            val audioMetadataList = folderDataList.mapNotNull { (fileRef, firestoreDocId) ->
+            val audioMetadataList = folderDataList.mapNotNull { (fileRef, soundId) ->
                 try {
-                    val firestoreDoc = firestoreMetadata[firestoreDocId]
-                    val url = urlCache.getOrPut(firestoreDocId) {
+                    val firestoreDoc = firestoreMetadata[soundId]
+                    val url = urlCache.getOrPut(soundId) {
                         fileRef.downloadUrl.await().toString()
                     }
 
-                    if (firestoreDoc != null) {
+                    firestoreDoc?.let {
                         AudioMetadata(
+                            id = soundId,
                             url = url,
-                            fileName = firestoreDoc.getString("file_name") ?: "",
-                            duration = firestoreDoc.getString("duration") ?: "",
-                            bpm = firestoreDoc.getString("bpm"),
-                            tone = firestoreDoc.getString("tone"),
-                            tags = (firestoreDoc.get("tags") as? List<*>)?.mapNotNull { it as? String }
+                            fileName = it.getString("file_name") ?: "",
+                            duration = it.getString("duration") ?: "",
+                            bpm = it.getString("bpm"),
+                            tone = it.getString("tone"),
+                            tags = (it.get("tags") as? List<*>)?.mapNotNull { tag -> tag as? String }
                                 ?: emptyList()
-                        )
-                    } else {
-                        // Fallback if Firestore document is not found
-                        AudioMetadata(
-                            url = url,
-                            fileName = fileRef.name,
-                            duration = ""
                         )
                     }
                 } catch (e: Exception) {
@@ -126,10 +123,10 @@ actual class FirebaseStorageRepository {
             Pair(audioMetadataList, foldersResult.pageToken)
         } catch (e: Exception) {
             Log.e("FirebaseStorageService", "Error listing files", e)
-            e.printStackTrace()
             Pair(emptyList(), null)
         }
     }
+
 
     actual suspend fun uploadImage(filePath: String): String = withContext(Dispatchers.IO) {
         try {
@@ -156,7 +153,7 @@ actual class FirebaseStorageRepository {
         fileData: ByteArray,
         metadata: AudioMetadata,
         onProgress: (Float) -> Unit
-    ): Result<String> = suspendCancellableCoroutine { continuation ->
+    ): Result<AudioMetadata> = withContext(Dispatchers.IO) {
         try {
             val uniqueId = UUID.randomUUID().toString()
             val storageReference = storage.reference.child("samples/$username/$uniqueId/$fileName")
@@ -169,54 +166,87 @@ actual class FirebaseStorageRepository {
                 .setCustomMetadata("firestore_doc_id", uniqueId)
                 .build()
 
-            val uploadTask = storageReference.putBytes(fileData, storageMetadata)
+            // Upload file and get upload task result
+            val uploadTask = suspendCancellableCoroutine { continuation ->
+                val task = storageReference.putBytes(fileData, storageMetadata)
 
-            uploadTask.addOnProgressListener { taskSnapshot ->
-                val progress = taskSnapshot.bytesTransferred.toFloat() /
-                        taskSnapshot.totalByteCount.toFloat()
-                onProgress(progress)
+                task.addOnProgressListener { taskSnapshot ->
+                    val progress = taskSnapshot.bytesTransferred.toFloat() /
+                            taskSnapshot.totalByteCount.toFloat()
+                    onProgress(progress)
+                }
+
+                task.addOnSuccessListener {
+                    continuation.resume(it)
+                }.addOnFailureListener { e ->
+                    continuation.resumeWithException(e)
+                }
+
+                continuation.invokeOnCancellation {
+                    task.cancel()
+                }
             }
 
-            // Handle the upload and Firestore operations sequentially
-            uploadTask.continueWithTask { task ->
-                if (!task.isSuccessful) {
-                    task.exception?.let { throw it }
-                }
+            // Get download URL
+            val downloadUrl = suspendCoroutine<String> { continuation ->
                 storageReference.downloadUrl
-            }.addOnSuccessListener { downloadUrl ->
-                // Create Firestore document
-                val firestoreMetadata = hashMapOf(
-                    "file_name" to fileName,
-                    "username" to username,
-                    "file_extension" to fileName.substringAfterLast("."),
-                    "duration" to metadata.duration,
-                    "url" to downloadUrl.toString(),
-                    "bpm" to (metadata.bpm ?: ""),
-                    "tone" to (metadata.tone ?: ""),
-                    "tags" to metadata.tags,
-                    "timestamp" to System.currentTimeMillis().toString(),
-                    "content_type" to storageMetadata.contentType
-                )
+                    .addOnSuccessListener { url ->
+                        continuation.resume(url.toString())
+                    }
+                    .addOnFailureListener { e ->
+                        continuation.resumeWithException(e)
+                    }
+            }
 
+            // Create Firestore document with complete metadata
+            val timestamp = System.currentTimeMillis().toString()
+            val firestoreMetadata = hashMapOf(
+                "id" to uniqueId,
+                "file_name" to fileName,
+                "username" to username,
+                "file_extension" to fileName.substringAfterLast("."),
+                "duration" to (metadata.duration ?: ""),
+                "url" to downloadUrl,
+                "timestamp" to timestamp,
+                "bpm" to (metadata.bpm ?: ""),
+                "tone" to (metadata.tone ?: ""),
+                "tags" to metadata.tags,
+                "content_type" to storageMetadata.contentType
+            )
+
+            // Save to Firestore
+            suspendCoroutine { continuation ->
                 firestore.collection("audio_metadata")
                     .document(uniqueId)
                     .set(firestoreMetadata)
                     .addOnSuccessListener {
-                        continuation.resume(Result.success(downloadUrl.toString()))
+                        continuation.resume(Unit)
                     }
                     .addOnFailureListener { e ->
-                        continuation.resume(Result.failure(e))
+                        continuation.resumeWithException(e)
                     }
-            }.addOnFailureListener { e ->
-                continuation.resume(Result.failure(e))
             }
 
-            continuation.invokeOnCancellation {
-                uploadTask.cancel()
-            }
+            // Return complete AudioMetadata object
+            Result.success(
+                AudioMetadata(
+                    id = uniqueId,
+                    fileName = fileName,
+                    fileExtension = fileName.substringAfterLast("."),
+                    duration = metadata.duration ?: "",
+                    url = downloadUrl,
+                    timestamp = timestamp,
+                    contentType = storageMetadata.contentType ?: "",
+                    bpm = metadata.bpm ?: "",
+                    tone = metadata.tone ?: "",
+                    tags = metadata.tags,
+                    isLiked = false
+                )
+            )
+
         } catch (e: Exception) {
             Log.e("FirebaseStorageService", "Error uploading file: ${e.message}", e)
-            continuation.resume(Result.failure(e))
+            Result.failure(e)
         }
     }
 
@@ -313,4 +343,65 @@ actual class FirebaseStorageRepository {
             Result.failure(e)
         }
     }
+
+    actual suspend fun getSoundMetadata(soundId: String): AudioMetadata {
+        val documentSnapshot = firestore.collection("audio_metadata")
+            .document(soundId)
+            .get()
+            .await()
+
+        if (documentSnapshot.exists()) {
+            return AudioMetadata(
+                id = documentSnapshot.id,
+                fileName = documentSnapshot.getString("file_name") ?: "",
+                url = documentSnapshot.getString("url") ?: "",
+                duration = documentSnapshot.getString("duration") ?: "",
+                bpm = documentSnapshot.getString("bpm"),
+                tone = documentSnapshot.getString("tone"),
+                tags = (documentSnapshot.get("tags") as? List<*>)?.mapNotNull { it as? String }
+                    ?: emptyList(),
+                timestamp = documentSnapshot.getString("timestamp") ?: ""
+            )
+        } else {
+            throw Exception("Document not found for ID: $soundId")
+        }
+    }
+
+    actual suspend fun getSoundsMetadataByIds(soundIds: List<String>): Result<List<AudioMetadata>> {
+        return try {
+            if (soundIds.isEmpty()) {
+                return Result.success(emptyList())
+            }
+
+            val querySnapshot = firestore.collection("audio_metadata")
+                .whereIn(FieldPath.documentId(), soundIds)
+                .get()
+                .await()
+
+            val metadataList = querySnapshot.documents.mapNotNull { document ->
+                try {
+                    AudioMetadata(
+                        id = document.id,
+                        fileName = document.getString("file_name") ?: "",
+                        url = document.getString("url") ?: "",
+                        duration = document.getString("duration") ?: "",
+                        bpm = document.getString("bpm"),
+                        tone = document.getString("tone"),
+                        tags = (document.get("tags") as? List<*>)?.mapNotNull { it as? String }
+                            ?: emptyList(),
+                        timestamp = document.getString("timestamp") ?: ""
+                    )
+                } catch (e: Exception) {
+                    Log.e("FirebaseStorageService", "Error mapping document ${document.id}", e)
+                    null
+                }
+            }
+
+            Result.success(metadataList)
+        } catch (e: Exception) {
+            Log.e("FirebaseStorageService", "Error fetching sound metadata for IDs", e)
+            Result.failure(e)
+        }
+    }
+
 }

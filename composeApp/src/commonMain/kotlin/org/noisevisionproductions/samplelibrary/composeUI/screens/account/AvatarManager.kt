@@ -30,10 +30,11 @@ object AvatarManager {
         avatarUrl: String?,
         size: Dp = DEFAULT_AVATAR_SIZE,
         onClick: (() -> Unit)? = null,
-        showEditButton: Boolean = false
+        showEditButton: Boolean = false,
+        modifier: Modifier = Modifier
     ) {
         Box(
-            modifier = Modifier
+            modifier = modifier
                 .size(size)
                 .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier),
             contentAlignment = Alignment.Center

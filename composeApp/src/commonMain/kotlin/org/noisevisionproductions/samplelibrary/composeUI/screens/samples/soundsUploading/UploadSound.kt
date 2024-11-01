@@ -46,21 +46,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.noisevisionproductions.samplelibrary.composeUI.CreateErrorMessage
-import org.noisevisionproductions.samplelibrary.composeUI.CustomOutlinedTextField
+import org.noisevisionproductions.samplelibrary.composeUI.CustomColors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
-import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
 import org.noisevisionproductions.samplelibrary.utils.TagRepository
 import org.noisevisionproductions.samplelibrary.utils.UploadStatus
 import org.noisevisionproductions.samplelibrary.utils.dataClasses.FileData
+import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
 import org.noisevisionproductions.samplelibrary.utils.metadata.MetadataEditor
-import org.noisevisionproductions.samplelibrary.utils.metadata.MetadataLists
 
 @Composable
 fun UploadNewSound(
@@ -75,10 +73,18 @@ fun UploadNewSound(
     val selectedFileIndex = remember { mutableStateOf(0) }
     var showCompletionMessage by remember { mutableStateOf(false) }
 
+    LaunchedEffect(selectedFiles) {
+        if (selectedFiles.isEmpty()) {
+            selectedFileIndex.value = 0
+        } else if (selectedFileIndex.value >= selectedFiles.size) {
+            selectedFileIndex.value = selectedFiles.size - 1
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colors.background)
+            .background(colors.backgroundColorForNewContent)
             .padding(16.dp)
     ) {
         if (selectedFiles.isEmpty()) {
@@ -111,36 +117,45 @@ fun UploadNewSound(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = 30.dp)
-                    .align(Alignment.TopStart),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                // Display only the currently selected file
-                FileEditorView(
-                    uploadSoundViewModel = uploadSoundViewModel,
-                    file = selectedFiles[selectedFileIndex.value],
-                    index = selectedFileIndex.value,
-                    username = username ?: "Nieznany użytkownik",
-                    onFileNameChange = { idx, newName ->
-                        uploadSoundViewModel.updateFileName(idx, newName)
-                    },
-                    onBpmChange = { newBpm ->
-                        uploadSoundViewModel.updateFileBpm(selectedFileIndex.value, newBpm)
-                    },
-                    onToneChange = { newTone ->
-                        uploadSoundViewModel.updateFileTone(selectedFileIndex.value, newTone)
-                    },
-                    onTagsChange = { newTags ->
-                        uploadSoundViewModel.updateFileTags(selectedFileIndex.value, newTags)
-                    },
-                    onRemoveFile = {
-                        uploadSoundViewModel.removeFile(selectedFileIndex.value)
-                        if (selectedFileIndex.value >= selectedFiles.size - 1) {
-                            selectedFileIndex.value = (selectedFiles.size - 1).coerceAtLeast(0)
-                        }
-                    }
+
+                Text(
+                    text = "Ta aplikacja automatycznie pobiera czas trwania dźwięku, " +
+                            "ale może to zająć do 1 minuty, zanim będzie widoczny.",
+                    style = MaterialTheme.typography.body1,
+                    color = CustomColors.black60,
+                    fontSize = 9.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
+
+                if (selectedFiles.isNotEmpty() && selectedFileIndex.value < selectedFiles.size) {
+                    FileEditorView(
+                        uploadSoundViewModel = uploadSoundViewModel,
+                        file = selectedFiles[selectedFileIndex.value],
+                        index = selectedFileIndex.value,
+                        username = username ?: "Nieznany użytkownik",
+                        onFileNameChange = { idx, newName ->
+                            uploadSoundViewModel.updateFileName(idx, newName)
+                        },
+                        onBpmChange = { newBpm ->
+                            uploadSoundViewModel.updateFileBpm(selectedFileIndex.value, newBpm)
+                        },
+                        onToneChange = { newTone ->
+                            uploadSoundViewModel.updateFileTone(selectedFileIndex.value, newTone)
+                        },
+                        onTagsChange = { newTags ->
+                            uploadSoundViewModel.updateFileTags(selectedFileIndex.value, newTags)
+                        },
+                        onRemoveFile = {
+                            uploadSoundViewModel.removeFile(selectedFileIndex.value)
+                        }
+                    )
+                }
 
                 // Navigation circles with upload progress/status below
                 Row(
@@ -420,7 +435,7 @@ fun DropdownSelector(
         onExpandedChange = { expanded = !expanded }
     ) {
         TextField(
-            value = selectedOption.ifEmpty { "Wybierz $label" },
+            value = selectedOption.ifEmpty { "Wybierz $label\n(opcjonalnie)" },
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },

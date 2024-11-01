@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -25,18 +27,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import org.noisevisionproductions.samplelibrary.auth.AuthService
+import org.noisevisionproductions.samplelibrary.composeUI.components.BackgroundWithCirclesWithAvatar
+import org.noisevisionproductions.samplelibrary.composeUI.components.DefaultAvatar
+import org.noisevisionproductions.samplelibrary.composeUI.components.bottomShadow
 import org.noisevisionproductions.samplelibrary.composeUI.screens.account.AccountFragmentNavigationHost
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.AvatarManager.UserAvatar
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.ForumNavigationHost
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
-import org.noisevisionproductions.samplelibrary.database.LikeRepository
-import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.DynamicListViewModel
-import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.SoundNavigationHost
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.exploreMenu.DynamicListViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.exploreMenu.SoundNavigationHost
 import org.noisevisionproductions.samplelibrary.database.CommentRepository
 import org.noisevisionproductions.samplelibrary.database.FirebaseStorageRepository
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
+import org.noisevisionproductions.samplelibrary.database.LikeRepository
 import org.noisevisionproductions.samplelibrary.database.PostsRepository
 import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.errors.ErrorHandler
@@ -86,6 +94,7 @@ fun BarWithFragmentsList(
             postsRepository
         )
     }
+
     val navigationViewModel = remember { viewModelFactory.navigationViewModel() }
     val uploadSoundViewModel = remember { viewModelFactory.uploadSoundViewModel() }
     val userViewModel = remember { viewModelFactory.userViewModel() }
@@ -98,6 +107,12 @@ fun BarWithFragmentsList(
     val currentTab by navigationViewModel.selectedTab.collectAsState()
     var currentScreen by remember { mutableStateOf(FragmentsTabs.Tab1) }
 
+    var avatarPath by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        avatarPath = userRepository.getCurrentUserAvatarPath()
+    }
+
     LaunchedEffect(currentTab) {
         currentScreen = currentTab
     }
@@ -106,14 +121,33 @@ fun BarWithFragmentsList(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(colors.backgroundWhiteColor)
         ) {
             Box(
                 modifier = Modifier
-                    .height(100.dp)
+                    .height(150.dp)
                     .fillMaxWidth()
-                    .background(color = colors.primaryBackgroundColor)
-            )
+            ) {
+                BackgroundWithCirclesWithAvatar(
+                    backgroundColor = colors.primaryBackgroundColor,
+                    modifier = Modifier.matchParentSize()
+                )
+                if (avatarPath != null) {
+                    UserAvatar(
+                        avatarUrl = avatarPath!!,
+                        size = 90.dp,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 10.dp)
+                    )
+                } else {
+                    DefaultAvatar(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 10.dp)
+
+                    )
+                }
+            }
 
             val tabTitles = listOf("Dźwięki", "Forum", "Pomoc")
 
@@ -122,7 +156,9 @@ fun BarWithFragmentsList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(60.dp)
-                    .background(colors.barColor),
+                    .background(colors.barColor)
+                    .bottomShadow()
+                    .zIndex(1f),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
