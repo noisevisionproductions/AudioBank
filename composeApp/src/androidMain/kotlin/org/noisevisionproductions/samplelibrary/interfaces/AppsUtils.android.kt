@@ -21,7 +21,6 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
-
 actual fun downloadAndSaveFile(
     context: Any?,
     fileUrl: String,
@@ -63,23 +62,19 @@ fun checkAndRequestStoragePermission(
     val androidContext = activity.applicationContext
 
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-        // Check if permission is granted
         if (ContextCompat.checkSelfPermission(
                 androidContext, Manifest.permission.WRITE_EXTERNAL_STORAGE
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            // Permission already granted, start the download
             downloadAndSaveFile(androidContext, fileUrl, fileName) {
                 Toast.makeText(androidContext, "Pobieranie rozpoczęte", Toast.LENGTH_SHORT).show()
             }
         } else {
-            // Request permission and store the file details for later use
             activity.pendingFileUrl = fileUrl
             activity.pendingFileName = fileName
             activity.requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
     } else {
-        // Android 10 and above, no need for WRITE_EXTERNAL_STORAGE permission
         downloadAndSaveFile(androidContext, fileUrl, fileName) {
             Toast.makeText(androidContext, "Pobieranie rozpoczęte", Toast.LENGTH_SHORT).show()
         }

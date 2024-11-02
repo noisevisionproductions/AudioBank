@@ -6,18 +6,14 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.firebase.FirebaseApp
 import org.noisevisionproductions.samplelibrary.auth.AuthService
-import org.noisevisionproductions.samplelibrary.composeUI.screens.LoginActivity
 import org.noisevisionproductions.samplelibrary.composeUI.screens.SamplesActivity
-import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadNewSound
-import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.soundsUploading.UploadSoundViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.auth.LoginActivityBase
 import org.noisevisionproductions.samplelibrary.interfaces.AppContext
 import org.noisevisionproductions.samplelibrary.interfaces.downloadAndSaveFile
-import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
 
 class MainActivity : ComponentActivity() {
     var pendingFileUrl: String? = null
@@ -33,7 +29,7 @@ class MainActivity : ComponentActivity() {
             val mainMenuIntent = Intent(this, SamplesActivity::class.java)
             startActivity(mainMenuIntent)
         } else {
-            val loginIntent = Intent(this, LoginActivity::class.java)
+            val loginIntent = Intent(this, LoginActivityBase::class.java)
             startActivity(loginIntent)
         }
 
@@ -47,7 +43,6 @@ class MainActivity : ComponentActivity() {
             ActivityResultContracts.RequestPermission()
         ) { isGranted ->
             if (isGranted) {
-                // Download the file if permission is granted
                 pendingFileUrl?.let { url ->
                     pendingFileName?.let { name ->
                         downloadAndSaveFile(this, url, name) {
@@ -81,8 +76,6 @@ class SampleLibrary : Application() {
 
         AppContext.setUp(appContext)
         FirebaseApp.initializeApp(this)
-
-
 
         authService = AuthService()
     }

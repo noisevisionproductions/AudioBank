@@ -5,11 +5,13 @@ import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
 
-class SamplesActivity : AppCompatActivity() {
+actual class SamplesActivity : AppCompatActivity() {
+
+    actual fun initializeFilePicker(): FilePicker = FilePicker(activity = this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val filePicker = FilePicker(activity = this)
+        val filePicker = initializeFilePicker()
         setContent {
             App(filePicker = filePicker)
         }

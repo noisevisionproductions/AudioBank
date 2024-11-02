@@ -239,15 +239,15 @@ class DynamicListViewModel(
         }
 
         viewModelScope.launch {
-            try {
-                _uiState.update { it.copy(isLoading = true) }
+            _uiState.update { it.copy(isLoading = true) }
 
-                val (newFiles, newToken) = firebaseStorageRepository.listFilesWithMetadata(
-                    directoryPath = directoryPath,
-                    continuationToken = _uiState.value.continuationToken ?: ""
-                )
+            val result = firebaseStorageRepository.listFilesWithMetadata(
+                directoryPath = directoryPath,
+                continuationToken = _uiState.value.continuationToken ?: ""
+            )
 
-                // I'm calling this method here for correctly load if sounds are favorited by the user
+            result.onSuccess { (newFiles, newToken) ->
+                // Update favorite status and filter the files as needed
                 updateFileList(newFiles)
 
                 _uiState.update { currentState ->
@@ -271,15 +271,15 @@ class DynamicListViewModel(
                         isLoading = false
                     )
                 }
-            } catch (e: Exception) {
+            }.onFailure { error ->
                 _uiState.update { it.copy(isLoading = false) }
                 UserErrorInfo(
-                    message = "Błąd podczas ładowania dźwięków\n${e.message}",
+                    message = "Error loading sounds\n${error.message}",
                     actionType = UserErrorAction.RETRY,
                     errorId = "LOADING_MORE_FILES_ERROR",
                     retryAction = { loadMoreFiles() }
                 )
-                println(e)
+                println(error)
             }
         }
     }
@@ -348,22 +348,25 @@ class DynamicListViewModel(
 
     private fun loadLikedSounds() {
         viewModelScope.launch {
-            try {
-                val likedSounds = userRepository.getLikedSounds().toSet()
-                cachedLikedSounds = likedSounds
-                _uiState.update { it.copy(likedSounds = likedSounds) }
-                if (_uiState.value.fileListWithMetadata.isNotEmpty()) {
-                    updateFilesLikeStatus(likedSounds)
+            userRepository.getLikedSounds().fold(
+                onSuccess = { likedSounds ->
+                    val likedSoundsSet = likedSounds.toSet()
+                    cachedLikedSounds = likedSoundsSet
+                    _uiState.update { it.copy(likedSounds = likedSoundsSet) }
+                    if (_uiState.value.fileListWithMetadata.isNotEmpty()) {
+                        updateFilesLikeStatus(likedSoundsSet)
+                    }
+                },
+                onFailure = { e ->
+                    UserErrorInfo(
+                        message = "Błąd podczas ładowania polubień dźwięków - ${e.message}",
+                        actionType = UserErrorAction.RETRY,
+                        errorId = "LOAD_LIKED_SOUNDS_ERROR",
+                        retryAction = { loadLikedSounds() }
+                    )
+                    println("Error loading liked sounds: ${e.message}")
                 }
-            } catch (e: Exception) {
-                UserErrorInfo(
-                    message = "Błąd podczas ładowania polubień dźwięków - ${e.message}",
-                    actionType = UserErrorAction.RETRY,
-                    errorId = "LOAD_LIKED_SOUNDS_ERROR",
-                    retryAction = { loadLikedSounds() }
-                )
-                println(e)
-            }
+            )
         }
     }
 
@@ -376,36 +379,39 @@ class DynamicListViewModel(
 
     fun toggleSoundLike(soundId: String) {
         viewModelScope.launch {
-            try {
-                likeRepository.toggleSoundLike(soundId)
+            val result = likeRepository.toggleSoundLike(soundId)
 
-                val isCurrentlyLiked = soundId in _uiState.value.likedSounds
-                val event = if (isCurrentlyLiked) {
-                    SoundEvent.SoundUnliked(soundId)
-                } else {
-                    SoundEvent.SoundLiked(soundId)
+            result.fold(
+                onSuccess = {
+                    val isCurrentlyLiked = soundId in _uiState.value.likedSounds
+                    val event = if (isCurrentlyLiked) {
+                        SoundEvent.SoundUnliked(soundId)
+                    } else {
+                        SoundEvent.SoundLiked(soundId)
+                    }
+                    sharedSoundEventsManager.emitEvent(event)
+
+                    // Update local state
+                    val currentLikedSounds = _uiState.value.likedSounds
+                    val newLikedSounds = if (isCurrentlyLiked) {
+                        currentLikedSounds - soundId
+                    } else {
+                        currentLikedSounds + soundId
+                    }
+
+                    cachedLikedSounds = newLikedSounds
+                    _uiState.update { it.copy(likedSounds = newLikedSounds) }
+                    updateFilesLikeStatus(newLikedSounds)
+                },
+                onFailure = { exception ->
+                    UserErrorInfo(
+                        message = "Błąd podczas zarządzaniem polubienia - ${exception.message}",
+                        actionType = UserErrorAction.OK,
+                        errorId = "TOGGLE_SOUND_LIKE_ERROR",
+                    )
+                    println(exception)
                 }
-                sharedSoundEventsManager.emitEvent(event)
-
-                // Update local stateobe
-                val currentLikedSounds = _uiState.value.likedSounds
-                val newLikedSounds = if (isCurrentlyLiked) {
-                    currentLikedSounds - soundId
-                } else {
-                    currentLikedSounds + soundId
-                }
-
-                cachedLikedSounds = newLikedSounds
-                _uiState.update { it.copy(likedSounds = newLikedSounds) }
-                updateFilesLikeStatus(newLikedSounds)
-            } catch (e: Exception) {
-                UserErrorInfo(
-                    message = "Błąd podczas zarządzaniem polubienia - ${e.message}",
-                    actionType = UserErrorAction.OK,
-                    errorId = "TOGGLE_SOUND_LIKE_ERROR",
-                )
-                println(e)
-            }
+            )
         }
     }
 

@@ -1,8 +1,10 @@
 package org.noisevisionproductions.samplelibrary.utils.files
 
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.io.File
+import platform.Foundation.*
+import platform.UIKit.*
 import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 actual class AvatarPickerRepositoryImpl actual constructor(
     private val filePicker: FilePicker
@@ -10,19 +12,26 @@ actual class AvatarPickerRepositoryImpl actual constructor(
 
     actual override suspend fun pickAvatar(): String? =
         suspendCancellableCoroutine { continuation ->
-            filePicker.pickFiles("image/*", allowMultiple = false) { files ->
-                // Extract the file path from the first FileData or return null if not available
-                continuation.resume(files.firstOrNull()?.filePath)
+            filePicker.pickImage { result ->
+                result?.let { continuation.resume(it) } ?: continuation.resume(null)
             }
         }
 
     actual override suspend fun filePathToByteArray(filePath: String): ByteArray? {
         return try {
-            File(filePath).readBytes()
+            val fileUrl = NSURL.fileURLWithPath(filePath)
+            val data = NSData.dataWithContentsOfURL(fileUrl)
+            data?.toByteArray()
         } catch (e: Exception) {
-            e.printStackTrace()
+            NSLog("Error reading file to byte array: ${e.localizedMessage}")
             null
         }
     }
 }
 
+// Utility function to convert NSData to ByteArray
+fun NSData.toByteArray(): ByteArray {
+    val bytes = ByteArray(this.length.toInt())
+    memcpy(bytes.refTo(0), this.bytes, this.length)
+    return bytes
+}

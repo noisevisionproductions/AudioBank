@@ -2,7 +2,6 @@ package org.noisevisionproductions.samplelibrary.database
 
 import android.util.Log
 import com.google.firebase.Firebase
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.firestore
 import com.google.firebase.firestore.toObject
@@ -13,10 +12,11 @@ import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostWithCategory
 import java.util.UUID
 
-actual class PostsRepository {
+actual class PostsRepository actual constructor(
+    private val forumRepository: ForumRepository
+) {
     private val firestore = Firebase.firestore
     private val postsCollection = firestore.collection("posts")
-    private val forumRepository = ForumRepository()
 
     actual suspend fun createPost(
         title: String,
@@ -24,8 +24,7 @@ actual class PostsRepository {
         username: String,
         categoryId: String,
         userId: String,
-        onPostCreated: (Boolean) -> Unit,
-    ) {
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
         val postId = UUID.randomUUID().toString()
         val postModel = PostModel(
             postId = postId,
@@ -35,28 +34,23 @@ actual class PostsRepository {
             content = content,
             categoryId = categoryId
         )
+        try {
+            firestore.runTransaction { transaction ->
+                val userDocRef = firestore.collection("users").document(userId)
+                val userSnapshot = transaction.get(userDocRef)
 
-        val firestore = FirebaseFirestore.getInstance()
-        val postDocRef = firestore.collection("posts").document(postId)
-        val userDocRef = firestore.collection("users").document(userId)
+                val currentPostIds = userSnapshot.get("postIds") as? List<*> ?: emptyList<String>()
+                val updatedPostIds = currentPostIds + postId
 
-        firestore.runTransaction { transaction ->
-            val userSnapshot = transaction.get(userDocRef)
+                transaction.set(postsCollection.document(postId), postModel)
+                transaction.update(userDocRef, "postIds", updatedPostIds)
+                null
+            }.await()
 
-            val currentPostIds =
-                (userSnapshot.get("postIds") as? List<*>)?.filterIsInstance<String>()
-                    ?: emptyList()
-            val updatedPostIds = currentPostIds + postId
-
-            transaction.set(postDocRef, postModel)
-            transaction.update(userDocRef, "postIds", updatedPostIds)
-
-            null
-        }.addOnSuccessListener {
-            onPostCreated(true)
-        }.addOnFailureListener { e ->
-            onPostCreated(false)
+            Result.success(true)
+        } catch (e: Exception) {
             Log.e("CreatePost", "Error creating post and updating user post IDs", e)
+            Result.failure(e)
         }
     }
 
@@ -75,36 +69,43 @@ actual class PostsRepository {
             query = when (selectedSortingOption) {
                 "Najnowsze" -> query.orderBy("timestamp", Query.Direction.DESCENDING)
                 "Najstarsze" -> query.orderBy("timestamp", Query.Direction.ASCENDING)
-                else -> query
+                else -> query.orderBy("timestamp", Query.Direction.DESCENDING)  // Default sorting
             }
 
-            if (selectedSortingOption == null) {
-                query = query.orderBy("timestamp", Query.Direction.DESCENDING)
-            }
-
-            if (lastPostId != null) {
-                val lastDocument = postsCollection.document(lastPostId).get().await()
+            lastPostId?.let { lastId ->
+                val lastDocument = postsCollection.document(lastId).get().await()
                 if (lastDocument.exists()) {
                     query = query.startAfter(lastDocument)
                 }
             }
 
-            query = query.limit(10)
-
-            val querySnapshot = query.get().await()
+            val querySnapshot = query.limit(10).get().await()
             val postList = querySnapshot.documents.mapNotNull { document ->
                 document.toObject(PostModel::class.java)?.copy(postId = document.id)
             }
 
             val categoryIds = postList.map { it.categoryId }.distinct()
-            val categoryMap = forumRepository.getCategoryNames(categoryIds)
+            val categoryResult = forumRepository.getCategoryNames(categoryIds)
 
-            val postsWithCategories = postList.map { post ->
-                PostWithCategory(
-                    post = post,
-                    categoryName = categoryMap[post.categoryId]?.name ?: "Unknown Category"
-                )
-            }
+            val postsWithCategories = categoryResult.fold(
+                onSuccess = { categoryMap ->
+                    postList.map { post ->
+                        PostWithCategory(
+                            post = post,
+                            categoryName = categoryMap[post.categoryId]?.name ?: "Unknown Category"
+                        )
+                    }
+                },
+                onFailure = { exception ->
+                    Log.e("FirestoreError", "Error getting categories", exception)
+                    postList.map { post ->
+                        PostWithCategory(
+                            post = post,
+                            categoryName = "Unknown Category"
+                        )
+                    }
+                }
+            )
 
             Result.success(postsWithCategories)
         } catch (e: Exception) {
@@ -113,20 +114,20 @@ actual class PostsRepository {
         }
     }
 
-    actual suspend fun getPost(postId: String): Result<PostModel> = withContext(Dispatchers.IO) {
-        try {
-            val documentSnapshot = postsCollection.document(postId).get().await()
-            if (documentSnapshot.exists()) {
-                val post =
+    actual suspend fun getPost(postId: String): Result<PostModel> =
+        withContext(Dispatchers.IO) {
+            try {
+                val documentSnapshot = postsCollection.document(postId).get().await()
+                if (documentSnapshot.exists()) {
                     documentSnapshot.toObject<PostModel>()?.copy(postId = documentSnapshot.id)
-                post?.let {
-                    Result.success(it)
-                } ?: Result.failure(Exception("Failed to convert document to PostModel"))
-            } else {
-                Result.failure(Exception("Post not found"))
+                        ?.let { Result.success(it) }
+                        ?: Result.failure(Exception("Failed to convert document to PostModel"))
+                } else {
+                    Result.failure(Exception("Post not found"))
+                }
+            } catch (e: Exception) {
+                Log.e("GetPost", "Error getting post with ID $postId", e)
+                Result.failure(e)
             }
-        } catch (e: Exception) {
-            Result.failure(e)
         }
-    }
 }

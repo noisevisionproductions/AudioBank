@@ -52,7 +52,7 @@ fun LoginScreen(
     viewModel: LoginViewModel,
     onLoginClick: (String, String) -> Unit,
     onRegistrationActivityClick: () -> Unit,
-    onForgotPasswordClick: () -> Unit
+    onForgotPasswordClick: () -> Unit = {}
 ) {
     val focusManager = LocalFocusManager.current
     val formState by viewModel.formState.collectAsState()

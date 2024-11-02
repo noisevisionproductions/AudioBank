@@ -6,50 +6,62 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import org.noisevisionproductions.samplelibrary.auth.AuthService
-import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
-import org.noisevisionproductions.samplelibrary.utils.models.UserModel
 
-actual class LikeRepository {
+actual class LikeRepository actual constructor(
+    private val authService: AuthService
+) {
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
-    private val authService = AuthService()
+
+    private suspend fun getCurrentUserId(): Result<String> {
+        val uid = authService.getCurrentUserId()
+        return if (uid != null) {
+            Result.success(uid)
+        } else {
+            Result.failure(Exception("User not authenticated"))
+        }
+    }
 
     actual suspend fun toggleLikePost(postId: String): Result<Boolean> =
         withContext(Dispatchers.IO) {
-            try {
-                val uid = authService.getCurrentUserId()
-                    ?: return@withContext Result.failure(Exception("User not authenticated"))
+            getCurrentUserId().fold(
+                onSuccess = { uid ->
+                    try {
+                        val userLikesRef = firestore.collection("users").document(uid)
+                        val postRef = firestore.collection("posts").document(postId)
 
-                val userLikesRef = firestore.collection("users").document(uid)
-                val postRef = firestore.collection("posts").document(postId)
+                        var isLiked = false
+                        firestore.runTransaction { transaction ->
+                            val postDoc = transaction.get(postRef)
+                            val userDoc = transaction.get(userLikesRef)
 
-                var isLiked = false
-                firestore.runTransaction { transaction ->
-                    val postDoc = transaction.get(postRef)
-                    val userDoc = transaction.get(userLikesRef)
+                            val currentLikes = postDoc.getLong("likesCount")?.toInt() ?: 0
+                            val likedPosts =
+                                userDoc.get("likedPosts") as? List<*> ?: listOf<String>()
 
-                    val currentLikes = postDoc.getLong("likesCount")?.toInt() ?: 0
-                    val likedPosts =
-                        (userDoc.get("likedPosts") as? List<*>)?.filterIsInstance<String>()
-                            ?: listOf()
+                            isLiked = postId !in likedPosts
 
-                    isLiked = postId !in likedPosts
+                            val newLikes =
+                                if (isLiked) currentLikes + 1 else (currentLikes - 1).coerceAtLeast(
+                                    0
+                                )
 
-                    val newLikes = if (isLiked) currentLikes + 1 else currentLikes - 1
+                            val newLikedPosts = if (isLiked) {
+                                likedPosts + postId
+                            } else {
+                                likedPosts - postId
+                            }
 
-                    val newLikedPosts = if (isLiked) {
-                        likedPosts + postId
-                    } else {
-                        likedPosts - postId
+                            transaction.update(postRef, "likesCount", newLikes)
+                            transaction.update(userLikesRef, "likedPosts", newLikedPosts)
+                        }.await()
+
+                        Result.success(isLiked)
+                    } catch (e: Exception) {
+                        Result.failure(e)
                     }
-
-                    transaction.update(postRef, "likesCount", newLikes)
-                    transaction.update(userLikesRef, "likedPosts", newLikedPosts)
-                }.await()
-
-                return@withContext Result.success(isLiked)
-            } catch (e: Exception) {
-                return@withContext Result.failure(e)
-            }
+                },
+                onFailure = { Result.failure(it) }
+            )
         }
 
     actual suspend fun getPostLikesCount(postId: String): Result<Int> =
@@ -64,84 +76,103 @@ actual class LikeRepository {
             }
         }
 
-    actual suspend fun isPostLiked(postId: String): Boolean = withContext(Dispatchers.IO) {
-        val uid = authService.getCurrentUserId()
-        if (uid != null) {
-            val documentSnapshot = firestore.collection("users").document(uid).get().await()
-            val userModel = documentSnapshot.toObject(UserModel::class.java)
-            userModel?.likedPosts?.contains(postId) == true
-        } else {
-            false
-        }
-    }
-
-    actual suspend fun isCommentLiked(commentId: String): Boolean {
-        val userId = authService.getCurrentUserId() ?: return false
-        val documentSnapshot = firestore.collection("users").document(userId).get().await()
-        val userModel = documentSnapshot.toObject(UserModel::class.java)
-        return userModel?.likedComments?.contains(commentId) == true
-    }
-
-    actual suspend fun toggleLikeComment(commentId: String): Result<Unit> {
-        val userId =
-            authService.getCurrentUserId() ?: return Result.failure(Exception("User not logged in"))
-
-        val userReference = firestore.collection("users").document(userId)
-        val commentReference = firestore.collection("comments").document(commentId)
-
-        return try {
-            firestore.runTransaction { transaction ->
-                val userSnapshot = transaction.get(userReference)
-                val commentSnapshot = transaction.get(commentReference)
-
-                val user = userSnapshot.toObject(UserModel::class.java)
-                val comment = commentSnapshot.toObject(CommentModel::class.java)
-
-                if (user != null && comment != null) {
-                    val isCurrentlyLiked = user.likedComments.contains(commentId)
-
-                    val updatedLikedComments = if (isCurrentlyLiked) {
-                        user.likedComments - commentId
-                    } else {
-                        user.likedComments + commentId
-                    }
-
-                    val updatedLikesCount = if (isCurrentlyLiked) {
-                        (comment.likesCount - 1).coerceAtLeast(0)
-                    } else {
-                        comment.likesCount + 1
-                    }
-
-                    transaction.update(userReference, "likedComments", updatedLikedComments)
-                    transaction.update(commentReference, "likesCount", updatedLikesCount)
+    actual suspend fun isPostLiked(postId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        getCurrentUserId().fold(
+            onSuccess = { uid ->
+                try {
+                    val documentSnapshot = firestore.collection("users").document(uid).get().await()
+                    val likedPosts = documentSnapshot.get("likedPosts") as? List<*>
+                    Result.success(likedPosts?.contains(postId) == true)
+                } catch (e: Exception) {
+                    Result.failure(e)
                 }
-            }.await()
+            },
+            onFailure = { Result.failure(it) }
+        )
 
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
     }
 
-    actual suspend fun toggleSoundLike(soundId: String) {
-        val userId = authService.getCurrentUserId()
-        if (userId != null) {
-            val userRef = firestore.collection("users").document(userId)
-            firestore.runTransaction { transaction ->
-                val userSnapshot = transaction.get(userRef)
-                val currentLikedSounds =
-                    (userSnapshot.get("likedSounds") as? List<*>)?.filterIsInstance<String>()
-                        ?: listOf()
+    actual suspend fun isCommentLiked(commentId: String): Result<Boolean> =
+        withContext(Dispatchers.IO) {
+            getCurrentUserId().fold(
+                onSuccess = { uid ->
+                    val documentSnapshot =
+                        firestore.collection("users").document(uid).get().await()
+                    val likedComments = documentSnapshot.get("likedComments") as? List<*>
+                    Result.success(likedComments?.contains(commentId) == true)
+                },
+                onFailure = { Result.failure(it) }
+            )
 
-                val updatedLikedSounds = if (currentLikedSounds.contains(soundId)) {
-                    currentLikedSounds - soundId
-                } else {
-                    currentLikedSounds + soundId
-                }
-                transaction.update(userRef, "likedSounds", updatedLikedSounds)
-            }
         }
-    }
 
+    actual suspend fun toggleLikeComment(commentId: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            getCurrentUserId().fold(
+                onSuccess = { uid ->
+                    try {
+                        val userReference = firestore.collection("users").document(uid)
+                        val commentReference = firestore.collection("comments").document(commentId)
 
+                        firestore.runTransaction { transaction ->
+                            val userSnapshot = transaction.get(userReference)
+                            val commentSnapshot = transaction.get(commentReference)
+
+                            val likedComments =
+                                userSnapshot.get("likedComments") as? List<*> ?: listOf<String>()
+                            val isCurrentlyLiked = likedComments.contains(commentId)
+
+                            val updatedLikedComments = if (isCurrentlyLiked) {
+                                likedComments - commentId
+                            } else {
+                                likedComments + commentId
+                            }
+
+                            val currentLikes = commentSnapshot.getLong("likesCount")?.toInt() ?: 0
+                            val updatedLikesCount = if (isCurrentlyLiked) {
+                                (currentLikes - 1).coerceAtLeast(0)
+                            } else {
+                                currentLikes + 1
+                            }
+
+                            transaction.update(userReference, "likedComments", updatedLikedComments)
+                            transaction.update(commentReference, "likesCount", updatedLikesCount)
+                        }.await()
+
+                        Result.success(Unit)
+                    } catch (e: Exception) {
+                        Result.failure(e)
+                    }
+                },
+                onFailure = { Result.failure(it) }
+            )
+        }
+
+    actual suspend fun toggleSoundLike(soundId: String): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            getCurrentUserId().fold(
+                onSuccess = { uid ->
+                    try {
+                        val userRef = firestore.collection("users").document(uid)
+                        firestore.runTransaction { transaction ->
+                            val userSnapshot = transaction.get(userRef)
+                            val likedSounds =
+                                userSnapshot.get("likedSounds") as? List<*> ?: listOf<String>()
+
+                            val updatedLikedSounds = if (likedSounds.contains(soundId)) {
+                                likedSounds - soundId
+                            } else {
+                                likedSounds + soundId
+                            }
+                            transaction.update(userRef, "likedSounds", updatedLikedSounds)
+                        }.await()
+
+                        Result.success(Unit)
+                    } catch (e: Exception) {
+                        Result.failure(e)
+                    }
+                },
+                onFailure = { Result.failure(it) }
+            )
+        }
 }

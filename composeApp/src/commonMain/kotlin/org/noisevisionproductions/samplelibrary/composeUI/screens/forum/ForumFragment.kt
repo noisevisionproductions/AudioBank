@@ -41,13 +41,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.auth.UserViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.CustomAlertDialog
+import org.noisevisionproductions.samplelibrary.composeUI.CustomColors
 import org.noisevisionproductions.samplelibrary.composeUI.CustomTopAppBar
 import org.noisevisionproductions.samplelibrary.composeUI.DropDownMenuWithItems
 import org.noisevisionproductions.samplelibrary.composeUI.RowWithSearchBar
-import org.noisevisionproductions.samplelibrary.composeUI.CustomAlertDialog
-import org.noisevisionproductions.samplelibrary.composeUI.CustomColors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
@@ -57,6 +56,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWind
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.postWindow.PostViewModel
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
 import org.noisevisionproductions.samplelibrary.database.PostsRepository
+import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.interfaces.formatTimeAgo
 import org.noisevisionproductions.samplelibrary.interfaces.poppinsFontFamily
 import org.noisevisionproductions.samplelibrary.utils.UiState
@@ -69,7 +69,7 @@ fun ForumNavigationHost(
     postViewModel: PostViewModel,
     userViewModel: UserViewModel,
     commentViewModel: CommentViewModel,
-    authService: AuthService,
+    userRepository: UserRepository,
     forumRepository: ForumRepository,
     likeManager: LikeManager,
     navigationViewModel: NavigationViewModel,
@@ -103,7 +103,7 @@ fun ForumNavigationHost(
             CreatePostScreen(
                 createPostViewModel = CreatePostViewModel(
                     forumRepository = forumRepository,
-                    authService = authService,
+                    userRepository = userRepository,
                     postsRepository = postsRepository
                 ),
                 userViewModel = userViewModel,

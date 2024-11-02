@@ -85,12 +85,26 @@ class CommentViewModel(
         postId: String,
         comment: CommentModel
     ) {
-        val isLiked = likeRepository.isCommentLiked(comment.commentId)
-        likeManager.initializeCommentLikeState(
-            postId,
-            comment.commentId,
-            isLiked,
-            comment.likesCount
+        val isLikedResult = likeRepository.isCommentLiked(comment.commentId)
+        isLikedResult.fold(
+            onSuccess = { isLiked ->
+                likeManager.initializeCommentLikeState(
+                    postId,
+                    comment.commentId,
+                    isLiked,
+                    comment.likesCount
+                )
+            },
+            onFailure = { exception ->
+                println(exception)
+                // Optionally, handle the error state in the UI or logging system if needed
+                likeManager.initializeCommentLikeState(
+                    postId,
+                    comment.commentId,
+                    isLiked = false,
+                    comment.likesCount
+                )
+            }
         )
 
         // Recursively initialize like states for all replies
@@ -252,7 +266,13 @@ class CommentViewModel(
     }
 
     private suspend fun getUsernameForUserId(userId: String): String? {
-        return userRepository.getUsernameById(userId)
+        return userRepository.getUsernameById(userId).fold(
+            onSuccess = { username -> username },
+            onFailure = { error ->
+                print(error)
+                null
+            }
+        )
     }
 
     fun addReply(
@@ -264,49 +284,83 @@ class CommentViewModel(
             if (replyContent.isNotEmpty()) {
                 _isSendingReply.value = true
                 try {
-                    val userId = authService.getCurrentUserId() ?: "unknown"
-                    val username = userRepository.getUsernameById(userId) ?: "unknown"
+                    userRepository.getCurrentUserId().fold(
+                        onSuccess = { userId ->
+                            userRepository.getUsernameById(userId).fold(
+                                onSuccess = { username ->
+                                    val reply = CommentModel(
+                                        commentId = "",
+                                        postId = postId,
+                                        parentCommentId = parentCommentId,
+                                        userId = userId,
+                                        username = username ?: "unknown",
+                                        content = replyContent,
+                                        timestamp = getCurrentTimestamp(),
+                                        replies = emptyList()
+                                    )
 
-                    val reply = CommentModel(
-                        commentId = "",
-                        postId = postId,
-                        parentCommentId = parentCommentId,
-                        userId = userId,
-                        username = username,
-                        content = replyContent,
-                        timestamp = getCurrentTimestamp(),
-                        replies = emptyList()
+                                    commentRepository.addReplyToComment(
+                                        postId,
+                                        parentCommentId,
+                                        reply
+                                    )
+                                        .onSuccess {
+                                            _replyTextsMap.update { currentMap ->
+                                                currentMap.toMutableMap().apply {
+                                                    put(parentCommentId, "")
+                                                }
+                                            }
+                                            _replyFieldVisibilityMap.update { currentMap ->
+                                                currentMap.toMutableMap().apply {
+                                                    put(parentCommentId, false)
+                                                }
+                                            }
+                                            commentsCache.remove(postId)
+                                            loadComments(postId)
+                                        }
+                                        .onFailure { error ->
+                                            UserErrorInfo(
+                                                message = "Failed to add reply\n${error.message}",
+                                                actionType = UserErrorAction.RETRY,
+                                                errorId = "ADD_REPLY_ERROR",
+                                                retryAction = { addReply(postId, parentCommentId) }
+                                            )
+                                            println("Error adding reply: ${error.message}")
+                                        }
+                                },
+                                onFailure = { error ->
+                                    UserErrorInfo(
+                                        message = "Failed to fetch username\n${error.message}",
+                                        actionType = UserErrorAction.RETRY,
+                                        errorId = "FETCH_USERNAME_ERROR",
+                                        retryAction = { addReply(postId, parentCommentId) }
+                                    )
+                                    println("Error fetching username: ${error.message}")
+                                }
+                            )
+                        },
+                        onFailure = { error ->
+                            UserErrorInfo(
+                                message = "Failed to fetch current user ID\n${error.message}",
+                                actionType = UserErrorAction.RETRY,
+                                errorId = "FETCH_USER_ID_ERROR",
+                                retryAction = { addReply(postId, parentCommentId) }
+                            )
+                            println("Error fetching current user ID: ${error.message}")
+                        }
                     )
-                    val result = commentRepository.addReplyToComment(postId, parentCommentId, reply)
-                    if (result.isSuccess) {
-                        _replyTextsMap.update { currentMap ->
-                            currentMap.toMutableMap().apply {
-                                put(parentCommentId, "")
-                            }
-                        }
-
-                        _replyFieldVisibilityMap.update { currentMap ->
-                            currentMap.toMutableMap().apply {
-                                put(parentCommentId, false)
-                            }
-                        }
-
-                        commentsCache.remove(postId)
-                        loadComments(postId)
-                    }
                 } catch (e: Exception) {
                     UserErrorInfo(
-                        message = "Nie udało się dodać odpowiedźi\n${e.message}",
+                        message = "Unexpected error while adding reply\n${e.message}",
                         actionType = UserErrorAction.RETRY,
-                        errorId = "ADD_REPLY_ERROR",
+                        errorId = "ADD_REPLY_UNEXPECTED_ERROR",
                         retryAction = { addReply(postId, parentCommentId) }
                     )
-                    println(e)
+                    println("Unexpected error: ${e.message}")
                 } finally {
                     _isSendingReply.value = false
                 }
             }
-
         }
     }
 }

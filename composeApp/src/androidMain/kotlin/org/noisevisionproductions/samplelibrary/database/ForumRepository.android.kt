@@ -7,72 +7,61 @@ import kotlinx.coroutines.tasks.await
 import org.noisevisionproductions.samplelibrary.utils.models.CategoryModel
 
 actual class ForumRepository actual constructor() {
+    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 
-    actual suspend fun getCategories(onCategoriesLoaded: (List<CategoryModel>) -> Unit) {
-        FirebaseFirestore.getInstance()
-            .collection("categories")
-            .get()
-            .addOnSuccessListener { result ->
-                val categories = result.map { document ->
-                    document.toObject(CategoryModel::class.java)
-                }
-                onCategoriesLoaded(categories)
-            }
-            .addOnFailureListener { e ->
-                Log.w("GetCategories", "Error getting categories", e)
-            }
+    actual suspend fun getCategories(): Result<List<CategoryModel>> = try {
+        val querySnapshot = firestore.collection("categories").get().await()
+        val categories =
+            querySnapshot.documents.mapNotNull { it.toObject(CategoryModel::class.java) }
+        Result.success(categories)
+    } catch (e: Exception) {
+        Log.e("ForumRepository", "Error getting categories", e)
+        Result.failure(e)
     }
 
-    actual suspend fun getCategoryName(categoryId: String): String {
-        return try {
-            val documentSnapshot = FirebaseFirestore.getInstance()
-                .collection("categories")
-                .document(categoryId)
-                .get()
-                .await()
-
-            val category = documentSnapshot.toObject(CategoryModel::class.java)
-            category?.name ?: "Unknown Category"
-        } catch (e: Exception) {
-            Log.w("GetCategoryName", "Error getting category name", e)
-            "Unknown Category"
-        }
+    actual suspend fun getCategoryName(categoryId: String): Result<String> = try {
+        val documentSnapshot = firestore.collection("categories").document(categoryId).get().await()
+        val categoryName =
+            documentSnapshot.toObject(CategoryModel::class.java)?.name ?: "Nieznana kategoria"
+        Result.success(categoryName)
+    } catch (e: Exception) {
+        Log.e("GetCategoryName", "Error getting category name", e)
+        Result.failure(e)
     }
 
-    actual suspend fun getCategoryNames(categoryIds: List<String>): Map<String, CategoryModel> {
-        val categoryMap = mutableMapOf<String, CategoryModel>()
-        val categoriesCollection = FirebaseFirestore.getInstance().collection("categories")
 
-        if (categoryIds.isEmpty()) {
-            val querySnapshot = categoriesCollection.get().await()
-            for (document in querySnapshot.documents) {
-                val category = document.toObject(CategoryModel::class.java)
-                if (category != null) {
-                    categoryMap[category.id] = category
-                }
-            }
-        } else {
-            val chunks = categoryIds.distinct().chunked(10)
+    actual suspend fun getCategoryNames(categoryIds: List<String>): Result<Map<String, CategoryModel>> =
+        try {
+            val categoryMap = mutableMapOf<String, CategoryModel>()
+            val categoriesCollection = firestore.collection("categories")
 
-            val tasks = chunks.map { chunk ->
-                categoriesCollection
-                    .whereIn(FieldPath.documentId(), chunk)
-                    .get()
-            }
-            val results = tasks.map { it.await() }
-
-            results.forEach { querySnapshot ->
+            if (categoryIds.isEmpty()) {
+                val querySnapshot = categoriesCollection.get().await()
                 for (document in querySnapshot.documents) {
                     val category = document.toObject(CategoryModel::class.java)
                     if (category != null) {
                         categoryMap[category.id] = category
                     }
                 }
+            } else {
+                categoryIds.distinct().chunked(10).forEach { chunk ->
+                    val querySnapshot = categoriesCollection
+                        .whereIn(FieldPath.documentId(), chunk)
+                        .get()
+                        .await()
+
+                    querySnapshot.documents.forEach { document ->
+                        val category = document.toObject(CategoryModel::class.java)
+                        if (category != null) {
+                            categoryMap[category.id] = category
+                        }
+                    }
+                }
             }
+
+            Result.success(categoryMap)
+        } catch (e: Exception) {
+            Log.w("ForumRepository", "Error getting category names", e)
+            Result.failure(e)
         }
-
-        return categoryMap
-    }
-
-
 }

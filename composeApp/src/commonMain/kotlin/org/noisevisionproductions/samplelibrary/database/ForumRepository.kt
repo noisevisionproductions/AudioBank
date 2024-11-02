@@ -6,7 +6,7 @@ import org.noisevisionproductions.samplelibrary.utils.models.PostWithCategory
 import samplelibrary.composeapp.generated.resources.Res
 
 expect class ForumRepository() {
-    suspend fun getCategories(onCategoriesLoaded: (List<CategoryModel>) -> Unit)
-    suspend fun getCategoryName(categoryId: String): String
-    suspend fun getCategoryNames(categoryIds: List<String>): Map<String, CategoryModel>
+    suspend fun getCategories(): Result<List<CategoryModel>>
+    suspend fun getCategoryName(categoryId: String): Result<String>
+    suspend fun getCategoryNames(categoryIds: List<String>): Result<Map<String, CategoryModel>>
 }

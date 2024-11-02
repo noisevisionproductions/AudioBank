@@ -110,15 +110,19 @@ class PostViewModel(
                 cachedPost != null -> _individualPost.value = cachedPost
                 currentPost != null -> _individualPost.value = currentPost
                 else -> {
-                    // If not found, load from repository
-                    _individualPost.value = null // Clear previous post while loading
+                    _individualPost.value = null
                     postsRepository.getPost(postId)
                         .onSuccess { post ->
                             postsCache[postId] = post
                             _individualPost.value = post
-                            // Initialize like state
-                            val isLiked = likeRepository.isPostLiked(post.postId)
-                            likeManager.initializePostLikeState(post, isLiked)
+                            likeRepository.isPostLiked(post.postId).fold(
+                                onSuccess = { isLiked ->
+                                    likeManager.initializePostLikeState(post, isLiked)
+                                },
+                                onFailure = { error ->
+                                    println(error)
+                                }
+                            )
                         }
                         .onFailure { error ->
                             _uiState.value = UiState.Error("Error loading post: ${error.message}")
@@ -138,9 +142,14 @@ class PostViewModel(
                     selectedSortingOption.value
                 )
                 result.onSuccess { postsWithCategories ->
-                    val updatedPosts = postsWithCategories.map { postWithCategories ->
-                        val post = postWithCategories.post
-                        val isLiked = likeRepository.isPostLiked(post.postId)
+                    val updatedPosts = postsWithCategories.map { postWithCategory ->
+                        val post = postWithCategory.post
+
+                        // Check like status for each post
+                        val isLikedResult = likeRepository.isPostLiked(post.postId)
+                        val isLiked =
+                            isLikedResult.getOrElse { false }  // Default to false if error
+
                         likeManager.initializePostLikeState(post, isLiked)
                         post.copy(isLiked = isLiked)
                     }
@@ -160,6 +169,7 @@ class PostViewModel(
             }
         }
     }
+
 
     private fun loadMorePosts() {
         if (isLoading || allPostsLoaded) return
@@ -185,13 +195,20 @@ class PostViewModel(
                     }
 
                     postsWithCategories = postsWithCategories + postWithCategoriesList
-
                     lastLoadedPostId = postWithCategoriesList.lastOrNull()?.post?.postId
 
                     postWithCategoriesList.forEach { postWithCategory ->
                         val post = postWithCategory.post
-                        val isLiked = likeRepository.isPostLiked(post.postId)
-                        likeManager.initializePostLikeState(post, isLiked)
+
+                        // Check like status for each post
+                        likeRepository.isPostLiked(post.postId).fold(
+                            onSuccess = { isLiked ->
+                                likeManager.initializePostLikeState(post, isLiked)
+                            },
+                            onFailure = { error ->
+                                println(error)
+                            }
+                        )
                     }
 
                     _posts.value += postWithCategoriesList.map { it.post }
@@ -215,6 +232,7 @@ class PostViewModel(
         }
     }
 
+
     fun filterPosts(query: String) {
         _searchQuery.value = query
     }
@@ -233,13 +251,19 @@ class PostViewModel(
     }
 
     private suspend fun getCategoryName(categoryId: String): String {
-        return categoryCache[categoryId] ?: try {
-            val categoryName = forumRepository.getCategoryName(categoryId)
-            categoryCache[categoryId] = categoryName
-            categoryName
-        } catch (e: Exception) {
-            println("Błąd podczas pobierania kategorii: ${e.message}")
-            "Nieznana Kategoria"
+        return categoryCache[categoryId] ?: run {
+            val result = forumRepository.getCategoryName(categoryId)
+
+            result.fold(
+                onSuccess = { categoryName ->
+                    categoryCache[categoryId] = categoryName
+                    categoryName
+                },
+                onFailure = { exception ->
+                    println("Błąd podczas pobierania kategorii: ${exception.message}")
+                    "Nieznana Kategoria"
+                }
+            )
         }
     }
 
@@ -249,17 +273,25 @@ class PostViewModel(
                 _selectedCategory.value = null
                 _selectedCategoryId.value = null
             } else {
-                val categoryMap = forumRepository.getCategoryNames(listOf())
-                println("testestsetset$categoryMap")
-                val category = categoryMap.values.firstOrNull { it.name == categoryName }
+                val categoryResult = forumRepository.getCategoryNames(listOf())
 
-                if (category != null) {
-                    _selectedCategory.value = categoryName
-                    _selectedCategoryId.value = category.id
-                } else {
-                    _selectedCategory.value = null
-                    _selectedCategoryId.value = null
-                }
+                categoryResult.fold(
+                    onSuccess = { categoryMap ->
+                        val category = categoryMap.values.firstOrNull { it.name == categoryName }
+                        if (category != null) {
+                            _selectedCategory.value = categoryName
+                            _selectedCategoryId.value = category.id
+                        } else {
+                            _selectedCategory.value = null
+                            _selectedCategoryId.value = null
+                        }
+                    },
+                    onFailure = { exception ->
+                        println(exception)
+                        _selectedCategory.value = null
+                        _selectedCategoryId.value = null
+                    }
+                )
             }
             reloadPosts()
         }

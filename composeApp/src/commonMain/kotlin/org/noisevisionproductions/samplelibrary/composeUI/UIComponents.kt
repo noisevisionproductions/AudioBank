@@ -6,7 +6,6 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,7 +24,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,7 +39,6 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
@@ -61,7 +58,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalDensity
@@ -77,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import org.jetbrains.compose.resources.painterResource
+import org.noisevisionproductions.samplelibrary.composeUI.components.bottomShadow
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.interfaces.poppinsFontFamily
 import samplelibrary.composeapp.generated.resources.Res
@@ -166,7 +163,8 @@ fun RowWithSearchBar(
         )
     }
 
-    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) 130.dp else 0.dp)
+    val targetHeight = if (tags.isNullOrEmpty()) 90.dp else 130.dp
+    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) targetHeight else 0.dp)
 
     Column(
         modifier = Modifier
@@ -493,62 +491,44 @@ fun CustomTopAppBar(
     onBackPressed: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    Column(
+    TopAppBar(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentHeight()
-    ) {
-        TopAppBar(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(75.dp),
-            title = {
-                Text(
-                    text = title,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    style = TextStyle(
-                        fontFamily = poppinsFontFamily(),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
-                    ),
-                    color = CustomColors.black100,
-                )
-            },
-            navigationIcon = onNavigateBack?.let {
-                {
-                    IconButton(onClick = onNavigateBack) {
-                        IconButton(onClick = {
-                            onBackPressed?.invoke() ?: onNavigateBack()
-                        }) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
-                            )
-                        }
+            .height(75.dp)
+            .bottomShadow()
+            .zIndex(1f),
+        title = {
+            Text(
+                text = title,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                style = TextStyle(
+                    fontFamily = poppinsFontFamily(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 24.sp
+                ),
+                color = CustomColors.black100,
+            )
+        },
+        navigationIcon = onNavigateBack?.let {
+            {
+                IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = {
+                        onBackPressed?.invoke() ?: onNavigateBack()
+                    }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
                     }
                 }
-            },
-            actions = actions,
-            backgroundColor = colors.primaryBackgroundColor,
-            contentColor = colors.textColorMain,
-            elevation = 0.dp
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(10.dp)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Black.copy(alpha = 0.4f),
-                            colors.backgroundColorForNewContent
-                        )
-                    )
-                )
-        )
-    }
+            }
+        },
+        actions = actions,
+        backgroundColor = colors.primaryBackgroundColor,
+        contentColor = colors.textColorMain,
+        elevation = 0.dp
+    )
 }
 
 @Composable

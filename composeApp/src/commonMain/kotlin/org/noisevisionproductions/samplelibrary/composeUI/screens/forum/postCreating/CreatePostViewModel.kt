@@ -8,17 +8,17 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.database.ForumRepository
 import org.noisevisionproductions.samplelibrary.database.PostsRepository
+import org.noisevisionproductions.samplelibrary.database.UserRepository
 import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
 import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import org.noisevisionproductions.samplelibrary.utils.models.CategoryModel
 
 class CreatePostViewModel(
     private val forumRepository: ForumRepository,
-    private val authService: AuthService,
-    private val postsRepository: PostsRepository
+    private val postsRepository: PostsRepository,
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     private val _title = MutableStateFlow("")
@@ -89,13 +89,27 @@ class CreatePostViewModel(
         _isAgreementAccepted.value = isAccepted
     }
 
+    // TODO fix
     private fun loadCategories() {
         viewModelScope.launch {
             _isLoading.value = true
-            forumRepository.getCategories { loadedCategories ->
-                _categories.value = loadedCategories
-                _isLoading.value = false
-            }
+            val result = forumRepository.getCategories()
+
+            result.fold(
+                onSuccess = { loadedCategories ->
+                    _categories.value = loadedCategories
+                },
+                onFailure = { exception ->
+                    UserErrorInfo(
+                        message = "Błąd podczas ładowania kategorii: ${exception.message}",
+                        actionType = UserErrorAction.RETRY,
+                        errorId = "LOAD_CATEGORIES_ERROR",
+                        retryAction = { loadCategories() }
+                    )
+                    println("Error loading categories: ${exception.message}")
+                }
+            )
+            _isLoading.value = false
         }
     }
 
@@ -106,49 +120,50 @@ class CreatePostViewModel(
         }
 
         viewModelScope.launch {
-            try {
-                val userId = authService.getCurrentUserId()
-
-                if (userId == null) {
-                    _errorMessage.value = "Musisz być zalogowany, aby utworzyć post"
-                    return@launch
-                }
-
-                val postUsername = if (isAnonymous.value) {
-                    "Anonim"
-                } else {
-                    username ?: run {
-                        _errorMessage.value = "Nie można pobrać nazwy użytkownika"
-                        return@launch
+            userRepository.getCurrentUserId().fold(
+                onSuccess = { userId ->
+                    val postUsername = if (isAnonymous.value) "Anonim" else username ?: "Nieznany"
+                    selectedCategory.value?.let { category ->
+                        postsRepository.createPost(
+                            title = title.value,
+                            content = content.value,
+                            username = postUsername,
+                            categoryId = category.id,
+                            userId = userId
+                        ).fold(
+                            onSuccess = { success ->
+                                if (success) {
+                                    _errorMessage.value = null
+                                    onPostCreated()
+                                } else {
+                                    _errorMessage.value = "Błąd podczas tworzenia postu"
+                                }
+                            },
+                            onFailure = { error ->
+                                UserErrorInfo(
+                                    message = "Błąd podczas tworzenia postu: ${error.message}",
+                                    actionType = UserErrorAction.RETRY,
+                                    errorId = "CREATE_POST_ERROR",
+                                    retryAction = { createPost(username, onPostCreated) }
+                                )
+                                println("Error creating post: ${error.message}")
+                            }
+                        )
+                    } ?: run {
+                        _errorMessage.value = "Nie wybrano kategorii"
                     }
+                },
+                onFailure = { error ->
+                    UserErrorInfo(
+                        message = "Błąd pobierania ID użytkownika: ${error.message}",
+                        actionType = UserErrorAction.RETRY,
+                        errorId = "FETCH_USER_ID_ERROR",
+                        retryAction = { createPost(username, onPostCreated) }
+                    )
+                    println("Error fetching user ID: ${error.message}")
                 }
-
-                selectedCategory.value?.let { category ->
-                    postsRepository.createPost(
-                        title = title.value,
-                        content = content.value,
-                        username = postUsername,
-                        categoryId = category.id,
-                        userId = userId
-                    ) { success ->
-                        if (success) {
-                            _errorMessage.value = null
-                            onPostCreated()
-                        } else {
-                            _errorMessage.value = "Błąd podczas tworzenia postu"
-
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                UserErrorInfo(
-                    message = "Nie udało się stworzyć postu\n${e.message}",
-                    actionType = UserErrorAction.RETRY,
-                    errorId = "CREATE_POST_ERROR",
-                    retryAction = { createPost(username, onPostCreated) }
-                )
-                println(e)
-            }
+            )
         }
     }
+
 }

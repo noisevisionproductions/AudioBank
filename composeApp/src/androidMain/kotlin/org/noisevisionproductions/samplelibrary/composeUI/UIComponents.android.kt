@@ -46,9 +46,7 @@ actual fun PropertiesMenu(
                 onOptionSelected("Zaimportuj")
                 onDismiss()
 
-                // Call the permission function with the passed activity context
                 if (activity != null) {
-                    // Trigger the side effects in a non-Composable context
                     checkAndRequestStoragePermission(fileUrl, fileName, activity)
                 }
             }) {

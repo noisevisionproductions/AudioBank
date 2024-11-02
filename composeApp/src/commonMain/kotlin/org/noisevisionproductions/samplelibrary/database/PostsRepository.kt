@@ -3,15 +3,16 @@ package org.noisevisionproductions.samplelibrary.database
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostWithCategory
 
-expect class PostsRepository() {
+expect class PostsRepository(
+    forumRepository: ForumRepository = ForumRepository()
+) {
     suspend fun createPost(
         title: String,
         content: String,
         username: String,
         categoryId: String,
         userId: String,
-        onPostCreated: (Boolean) -> Unit,
-    )
+    ): Result<Boolean>
 
     suspend fun getPostsFromFirestore(
         lastPostId: String? = null,

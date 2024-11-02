@@ -4,13 +4,11 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    id("com.android.application") version "8.7.1"
+    id("com.android.application") version "8.7.2"
     alias(libs.plugins.jetbrainsCompose)
     alias(libs.plugins.compose.compiler)
     id("com.google.gms.google-services")
     id("kotlinx-serialization")
-    id("com.google.dagger.hilt.android")
-    id("kotlin-kapt")
 }
 
 repositories {
@@ -55,7 +53,6 @@ kotlin {
             runtimeOnly(libs.androidx.fragment.ktx)
 
             // Azure Storage and components for XML
-
             implementation(libs.woodstox.core)
             implementation(libs.stax.api)
             // Firebase auth
@@ -68,9 +65,6 @@ kotlin {
             // Firebase Storage
             implementation(libs.google.firebase.storage.v1102)
             implementation(libs.firebase.appcheck.debug)
-
-            // Hilt DI dependencies
-            implementation(libs.hilt.android)
         }
 
         commonMain.dependencies {
@@ -86,7 +80,7 @@ kotlin {
         }
 
         iosMain.dependencies {
-
+            implementation(libs.firebase.auth.ktx)
         }
     }
 }
@@ -137,15 +131,6 @@ android {
     }
 }
 dependencies {
-    // Hilt kapt dependencies go here, outside the kotlin block
-    "kapt"(libs.hilt.android.compiler)
-    // For Hilt with Compose
-    "implementation"(libs.androidx.hilt.navigation.compose)
-
     implementation(libs.androidx.navigation.runtime.ktx)
+    implementation(libs.firebase.auth.ktx)
 }
-
-kapt {
-    correctErrorTypes = true
-}
-

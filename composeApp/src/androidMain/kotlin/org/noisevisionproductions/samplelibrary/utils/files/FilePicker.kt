@@ -19,7 +19,6 @@ actual class FilePicker(private val activity: ComponentActivity) {
     private var onFilesPicked: ((List<FileData>) -> Unit)? = null
 
     init {
-        // Launcher for single file selection
         singleFileLauncher = activity.registerForActivityResult(
             ActivityResultContracts.GetContent()
         ) { uri: Uri? ->
@@ -34,7 +33,7 @@ actual class FilePicker(private val activity: ComponentActivity) {
                 e.printStackTrace()
                 onFilePicked?.invoke(null)
             } finally {
-                onFilePicked = null // Clear the callback
+                onFilePicked = null
             }
         }
 
@@ -48,7 +47,7 @@ actual class FilePicker(private val activity: ComponentActivity) {
                         try {
                             getFileDataFromUri(activity, uri)
                         } catch (e: Exception) {
-                            null // Skip files that can't be processed
+                            null
                         }
                     }
                     onFilesPicked?.invoke(fileDataList)
@@ -59,7 +58,7 @@ actual class FilePicker(private val activity: ComponentActivity) {
                 e.printStackTrace()
                 onFilesPicked?.invoke(emptyList())
             } finally {
-                onFilesPicked = null // Clear the callback
+                onFilesPicked = null
             }
         }
     }
@@ -111,7 +110,6 @@ actual class FilePicker(private val activity: ComponentActivity) {
     }
 
     private fun getFilePathFromUri(context: Context, uri: Uri): String? {
-        // Use a content resolver to get the file path
         var filePath: String? = null
         if (uri.scheme == "file") {
             filePath = uri.path
@@ -124,7 +122,6 @@ actual class FilePicker(private val activity: ComponentActivity) {
                 }
             }
         }
-        // Fallback to copying the file to cache directory if needed
         if (filePath == null) {
             filePath = copyUriToFile(context, uri)
         }
@@ -147,7 +144,6 @@ actual class FilePicker(private val activity: ComponentActivity) {
     }
 
     private fun getFileName(context: Context, uri: Uri): String {
-        // Your existing implementation to get the file name from Uri
         var fileName = "unknown_file"
         context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
             val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)

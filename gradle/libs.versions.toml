@@ -73,6 +73,7 @@ coreKtx = "1.6.1"
 composeTest = "1.7.5"
 firebaseAppcheckDebug = "18.0.0"
 material3Jvmstubs = "1.4.0-alpha03"
+foundationLayoutAndroid = "1.7.2"
 
 [libraries]
 androidx-activity-compose-v192 = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
@@ -162,6 +163,7 @@ compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", ve
 core-ktx = { group = "androidx.test", name = "core-ktx", version.ref = "coreKtx" }
 firebase-appcheck-debug = { group = "com.google.firebase", name = "firebase-appcheck-debug", version.ref = "firebaseAppcheckDebug" }
 androidx-material3-jvmstubs = { group = "androidx.compose.material3", name = "material3-jvmstubs", version.ref = "material3Jvmstubs" }
+androidx-foundation-layout-android = { group = "androidx.compose.foundation", name = "foundation-layout-android", version.ref = "foundationLayoutAndroid" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

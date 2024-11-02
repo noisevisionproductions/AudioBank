@@ -7,81 +7,81 @@ import kotlinx.coroutines.tasks.await
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.NetworkUtils
 import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
 
-actual class CommentRepository {
+actual class CommentRepository actual constructor() {
 
     private val firestore = FirebaseFirestore.getInstance()
 
     actual suspend fun addCommentToPost(
         postId: String,
         comment: CommentModel
-    ): Result<Boolean> {
-        return try {
-            NetworkUtils().checkNetworkAvailabilityOrThrow()
-
-            val commentsCollection = firestore.collection("comments")
-            val newCommentRef = commentsCollection.document()
-            val newComment = comment.copy(
-                commentId = newCommentRef.id,
-                postId = postId
-            )
-            newCommentRef.set(newComment).await()
+    ): Result<Boolean> =
+        executeWithNetworkCheck {
+            val newComment = initializeNewComment(comment, postId)
+            firestore.collection("comments").document(newComment.commentId).set(newComment).await()
             Result.success(true)
-        } catch (e: Throwable) {
-            val error = when (e) {
-                is AppError -> e
-                is FirebaseFirestoreException -> AppError.ApiError(
-                    message = "Błąd podczas dodawania komentarza",
-                    errorCode = e.code.toString(),
-                    statusCode = -1,
-                    technicalDetails = e.stackTraceToString()
-                )
-
-                else -> AppError.UnexpectedError(
-                    throwable = e,
-                    message = "Nieoczekiwany błąd podczas dodawania komentarza"
-                )
-            }
-            Result.failure(error)
         }
-    }
 
     actual suspend fun addReplyToComment(
         postId: String,
         parentCommentId: String,
         reply: CommentModel
-    ): Result<Unit> {
-        return try {
-            NetworkUtils().checkNetworkAvailabilityOrThrow()
-
-            val commentsCollection = firestore.collection("comments")
-            val newReplyRef = commentsCollection.document()
-            val newReply = reply.copy(
-                commentId = newReplyRef.id,
-                postId = postId,
-                parentCommentId = parentCommentId
-            )
-            newReplyRef.set(newReply).await()
-            Result.success(Unit)
-        } catch (e: Throwable) {
-            Result.failure(e)
-        }
+    ): Result<Unit> = executeWithNetworkCheck {
+        val newReply = initializeNewReply(reply, postId, parentCommentId)
+        firestore.collection("comments").document(newReply.commentId).set(newReply).await()
+        Result.success(Unit)
     }
+
 
     actual suspend fun getCommentsForPost(postId: String): List<CommentModel> {
         return try {
-            val commentsSnapshot = firestore.collection("comments")
+            firestore.collection("comments")
                 .whereEqualTo("postId", postId)
                 .get()
                 .await()
-
-            val commentsList = commentsSnapshot.documents.mapNotNull { documentSnapshot ->
-                documentSnapshot.toObject(CommentModel::class.java)
-            }
-
-            buildCommentTree(commentsList)
+                .documents.mapNotNull { it.toObject(CommentModel::class.java) }
+                .let { buildCommentTree(it) }
         } catch (e: Exception) {
+            println(e)
             emptyList()
         }
+    }
+
+    private fun initializeNewComment(comment: CommentModel, postId: String): CommentModel {
+        val commentId = firestore.collection("comments").document().id
+        return comment.copy(commentId = commentId, postId = postId)
+    }
+
+    private fun initializeNewReply(
+        reply: CommentModel,
+        postId: String,
+        parentCommentId: String
+    ): CommentModel {
+        val replyId = firestore.collection("comments").document().id
+        return reply.copy(commentId = replyId, postId = postId, parentCommentId = parentCommentId)
+    }
+
+    private suspend fun <T> executeWithNetworkCheck(action: suspend () -> Result<T>): Result<T> {
+        return try {
+            NetworkUtils().checkNetworkAvailabilityOrThrow()
+            action()
+        } catch (e: Throwable) {
+            Result.failure(handleError(e))
+        }
+    }
+
+    private fun handleError(e: Throwable): AppError = when (e) {
+        is AppError -> e
+        is FirebaseFirestoreException -> AppError.ApiError(
+            message = "Błąd podczas operacji na komentarzu",
+            errorCode = e.code.toString(),
+            statusCode = -1,
+            technicalDetails = e.stackTraceToString()
+        )
+
+        else -> AppError.UnexpectedError(
+            throwable = e,
+            message = "Nieoczekiwany błąd podczas operacji na komentarzu"
+        )
     }
 
     private fun buildCommentTree(comments: List<CommentModel>): List<CommentModel> {

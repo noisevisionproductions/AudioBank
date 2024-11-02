@@ -44,8 +44,23 @@ class UploadSoundViewModel(
     }
 
     private fun fetchUsername() = viewModelScope.launch {
-        val userId = userRepository.getCurrentUserId()
-        _username.value = userId?.let { userRepository.getUsernameById(it) }
+        userRepository.getCurrentUserId().fold(
+            onSuccess = { userId ->
+                userRepository.getUsernameById(userId).fold(
+                    onSuccess = { username ->
+                        _username.value = username
+                    },
+                    onFailure = { error ->
+                        println("Error fetching username for user ID $userId: ${error.message}")
+                        _username.value = null
+                    }
+                )
+            },
+            onFailure = { error ->
+                println("Error fetching current user ID: ${error.message}")
+                _username.value = null
+            }
+        )
     }
 
     fun uploadFiles() = viewModelScope.launch {

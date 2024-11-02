@@ -54,43 +54,66 @@ class AccountViewModel(
     private fun loadUserData() {
         viewModelScope.launch {
             _userState.value = UserState.Loading
-            try {
-                val user = userRepository.getCurrentUser()
-                if (user != null) {
-                    _userState.value = UserState.Success(user)
-                }
-            } catch (e: Exception) {
-                sharedErrorViewModel.showError(
-                    UserErrorInfo(
-                        message = "Nie udało się załadować danych użytkownika",
-                        actionType = UserErrorAction.RETRY,
-                        errorId = "LOAD_USER_DATA_ERROR",
-                        retryAction = { loadUserData() }
+            userRepository.getCurrentUser().fold(
+                onSuccess = { user ->
+                    if (user != null) {
+                        _userState.value = UserState.Success(user)
+                    } else {
+                        println("User data not found")
+                    }
+                },
+                onFailure = { e ->
+                    sharedErrorViewModel.showError(
+                        UserErrorInfo(
+                            message = "Nie udało się załadować danych użytkownika",
+                            actionType = UserErrorAction.RETRY,
+                            errorId = "LOAD_USER_DATA_ERROR",
+                            retryAction = { loadUserData() }
+                        )
                     )
-                )
-            }
+                    println("Error loading user data: ${e.message}")
+                }
+            )
         }
     }
 
     private fun loadCreatedPosts() {
         viewModelScope.launch {
-            try {
-                val user = userRepository.getCurrentUser()
-                if (user != null) {
-                    val posts = userRepository.getPostsByIds(user.postIds)
-                    _createdPosts.value = posts
-                }
-            } catch (e: Exception) {
-                sharedErrorViewModel.showError(
-                    UserErrorInfo(
-                        message = "Nie udało się załadować utworzonych postów",
-                        actionType = UserErrorAction.RETRY,
-                        errorId = "LOAD_CREATED_POSTS_ERROR",
-                        retryAction = { loadCreatedPosts() }
+            userRepository.getCurrentUser().fold(
+                onSuccess = { user ->
+                    if (user != null) {
+                        userRepository.getPostsByIds(user.postIds).fold(
+                            onSuccess = { posts ->
+                                _createdPosts.value = posts
+                            },
+                            onFailure = { e ->
+                                sharedErrorViewModel.showError(
+                                    UserErrorInfo(
+                                        message = "Nie udało się załadować utworzonych postów",
+                                        actionType = UserErrorAction.RETRY,
+                                        errorId = "LOAD_CREATED_POSTS_ERROR",
+                                        retryAction = { loadCreatedPosts() }
+                                    )
+                                )
+                                println("Error loading created posts: ${e.message}")
+                            }
+                        )
+                    } else {
+                        println("User data not found")
+                    }
+                },
+                onFailure = { e ->
+                    sharedErrorViewModel.showError(
+                        UserErrorInfo(
+                            message = "Nie udało się załadować danych użytkownika",
+                            actionType = UserErrorAction.RETRY,
+                            errorId = "LOAD_USER_DATA_ERROR",
+                            retryAction = { loadCreatedPosts() }
+                        )
                     )
-                )
-                println(e)
-            }
+                    println("Error loading user data for created posts: ${e.message}")
+                }
+            )
         }
     }
 
@@ -104,13 +127,13 @@ class AccountViewModel(
                 .onFailure { error ->
                     sharedErrorViewModel.showError(
                         UserErrorInfo(
-                            message = "Failed to load liked posts",
+                            message = "Nie udało się załadować polubionych postów",
                             actionType = UserErrorAction.RETRY,
                             errorId = "LOAD_LIKED_POSTS_ERROR",
                             retryAction = { loadLikedPosts() }
                         )
                     )
-                    println(error)
+                    println("Error loading liked posts: ${error.message}")
                 }
         }
     }
@@ -131,11 +154,31 @@ class AccountViewModel(
         viewModelScope.launch {
             _userState.value = UserState.Loading
             try {
-                val imageUrl = firebaseStorageRepository.uploadImage(filePath)
-                userRepository.updateAvatarUrl(imageUrl)
-                loadUserData()
+                firebaseStorageRepository.uploadImage(filePath)
+                    .onSuccess { imageUrl ->
+                        userRepository.updateAvatarUrl(imageUrl).onSuccess {
+                            loadUserData()
+                        }.onFailure { error ->
+                            UserErrorInfo(
+                                message = "Error uploading avatar image - ${error.message}",
+                                actionType = UserErrorAction.RETRY,
+                                errorId = "AVATAR_ERROR",
+                                retryAction = { loadUserData() }
+                            )
+                            println(error)
+                        }
+                    }
+                    .onFailure { uploadError ->
+                        UserErrorInfo(
+                            message = "Error uploading avatar image - ${uploadError.message}",
+                            actionType = UserErrorAction.RETRY,
+                            errorId = "AVATAR_ERROR",
+                            retryAction = { loadUserData() }
+                        )
+                        println(uploadError)
+                    }
             } catch (e: Exception) {
-                handleError("Błąd podczas aktualizacji avatara", e)
+                handleError("Unexpected error during avatar update", e)
             }
         }
     }
@@ -168,6 +211,6 @@ class AccountViewModel(
                 retryAction = { loadUserData() }
             )
         )
-        println(error)
+        println("Error: $message - ${error.message}")
     }
 }

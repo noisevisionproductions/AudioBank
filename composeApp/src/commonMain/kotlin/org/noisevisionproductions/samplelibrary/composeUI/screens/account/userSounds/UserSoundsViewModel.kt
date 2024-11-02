@@ -36,15 +36,21 @@ class UserSoundsViewModel(
         observeSoundEvents()
     }
 
-
     private fun loadUsername() {
         viewModelScope.launch {
-            val userId = userRepository.getCurrentUser()
-            userId?.username?.let { username ->
-                _username.value = username
-                loadUserSounds(username)
-                loadFavoriteSounds()
-            }
+            userRepository.getCurrentUser().fold(
+                onSuccess = { user ->
+                    user?.username?.let { username ->
+                        _username.value = username
+                        loadUserSounds(username)
+                        loadFavoriteSounds()
+                    }
+                },
+                onFailure = { error ->
+                    println("Error loading user data: ${error.message}")
+                    _username.value = null
+                }
+            )
         }
     }
 
@@ -75,27 +81,38 @@ class UserSoundsViewModel(
     private fun loadFavoriteSounds() {
         viewModelScope.launch {
             _isLoading.value = true
-            try {
-                val likedSoundIds = userRepository.getLikedSounds()
-                if (likedSoundIds.isNotEmpty()) {
-                    val result = storageRepository.getSoundsMetadataByIds(likedSoundIds)
-                    result.onSuccess { sounds ->
-                        _favoriteSounds.value = sounds
+            userRepository.getLikedSounds().fold(
+                onSuccess = { likedSoundIds ->
+                    if (likedSoundIds.isNotEmpty()) {
+                        storageRepository.getSoundsMetadataByIds(likedSoundIds).fold(
+                            onSuccess = { sounds ->
+                                _favoriteSounds.value = sounds
+                            },
+                            onFailure = { e ->
+                                UserErrorInfo(
+                                    message = "Błąd podczas ładowania ulubionych dźwięków\n${e.message}",
+                                    actionType = UserErrorAction.RETRY,
+                                    errorId = "LOAD_FAVORITE_SOUNDS_ERROR",
+                                    retryAction = { loadFavoriteSounds() }
+                                )
+                                println("Error loading favorite sounds metadata: ${e.message}")
+                            }
+                        )
+                    } else {
+                        _favoriteSounds.value = emptyList()
                     }
-                } else {
-                    _favoriteSounds.value = emptyList()
+                },
+                onFailure = { e ->
+                    UserErrorInfo(
+                        message = "Błąd podczas ładowania ulubionych dźwięków\n${e.message}",
+                        actionType = UserErrorAction.RETRY,
+                        errorId = "LOAD_FAVORITE_SOUNDS_ERROR",
+                        retryAction = { loadFavoriteSounds() }
+                    )
+                    println("Error loading liked sound IDs: ${e.message}")
                 }
-            } catch (e: Exception) {
-                UserErrorInfo(
-                    message = "Błąd podczas ładowania ulubionych dźwięków\n${e.message}",
-                    actionType = UserErrorAction.RETRY,
-                    errorId = "LOAD_FAVORITE_SOUNDS_ERROR",
-                    retryAction = { loadFavoriteSounds() }
-                )
-                println(e)
-            } finally {
-                _isLoading.value = false
-            }
+            )
+            _isLoading.value = false
         }
     }
 
@@ -136,22 +153,31 @@ class UserSoundsViewModel(
     private fun updateLocalSoundMetadata(soundId: String) {
         viewModelScope.launch {
             try {
-                val updatedMetadata = storageRepository.getSoundMetadata(soundId)
-
-                _userSounds.update { currentSounds ->
-                    currentSounds.map { sound ->
-                        if (sound.id == soundId) updatedMetadata else sound
+                val result = storageRepository.getSoundMetadata(soundId)
+                result.onSuccess { updatedMetadata ->
+                    _userSounds.update { currentSounds ->
+                        currentSounds.map { sound ->
+                            if (sound.id == soundId) updatedMetadata else sound
+                        }
                     }
-                }
 
-                _favoriteSounds.update { currentFavorites ->
-                    currentFavorites.map { sound ->
-                        if (sound.id == soundId) updatedMetadata else sound
+                    _favoriteSounds.update { currentFavorites ->
+                        currentFavorites.map { sound ->
+                            if (sound.id == soundId) updatedMetadata else sound
+                        }
                     }
+                }.onFailure { error ->
+                    UserErrorInfo(
+                        message = "Error updating metadata - ${error.message}",
+                        actionType = UserErrorAction.RETRY,
+                        errorId = "UPDATE_LOCAL_SOUND_METADATA_ERROR",
+                        retryAction = { updateLocalSoundMetadata(soundId) }
+                    )
+                    println(error)
                 }
             } catch (e: Exception) {
                 UserErrorInfo(
-                    message = "Błąd podczas aktualizacji danych - ${e.message}",
+                    message = "Unexpected error - ${e.message}",
                     actionType = UserErrorAction.RETRY,
                     errorId = "UPDATE_LOCAL_SOUND_METADATA_ERROR",
                     retryAction = { updateLocalSoundMetadata(soundId) }

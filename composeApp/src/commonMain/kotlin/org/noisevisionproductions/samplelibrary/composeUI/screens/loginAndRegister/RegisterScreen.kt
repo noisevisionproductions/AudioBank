@@ -51,8 +51,8 @@ fun RegisterScreen(
     viewModel: RegisterViewModel,
     onRegisterClick: (String, String, String, String) -> Unit,
     onLoginActivityClick: () -> Unit,
-    onRegulationsClick: () -> Unit,
-    onPrivacyPolicyClick: () -> Unit
+    onRegulationsClick: () -> Unit = {},
+    onPrivacyPolicyClick: () -> Unit = {}
 ) {
     val focusManager = LocalFocusManager.current
     val formState by viewModel.formState.collectAsState()

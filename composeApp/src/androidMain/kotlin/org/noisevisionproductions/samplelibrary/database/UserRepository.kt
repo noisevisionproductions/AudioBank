@@ -11,184 +11,217 @@ import kotlinx.coroutines.withContext
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 import org.noisevisionproductions.samplelibrary.utils.models.UserModel
 
-actual class UserRepository {
+actual class UserRepository actual constructor() {
 
     private val firebaseAuth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
-    actual suspend fun getCurrentUserId(): String? {
-        return firebaseAuth.currentUser?.uid
+    private fun getCurrentUserIdOrError(): Result<String> {
+        return firebaseAuth.currentUser?.uid?.let { Result.success(it) }
+            ?: Result.failure(IllegalStateException("User not logged in"))
     }
 
-    actual suspend fun getCurrentUser(): UserModel? = withContext(Dispatchers.IO) {
-        val uid = getCurrentUserId()
-        if (uid != null) {
+    actual suspend fun getCurrentUserId(): Result<String> = getCurrentUserIdOrError()
+
+    actual suspend fun getCurrentUser(): Result<UserModel?> = withContext(Dispatchers.IO) {
+        val userIdResult = getCurrentUserIdOrError()
+        userIdResult.fold(
+            onSuccess = { uid ->
+                try {
+                    val documentSnapshot = firestore.collection("users")
+                        .document(uid)
+                        .get()
+                        .await()
+                    Result.success(documentSnapshot.toObject(UserModel::class.java))
+                } catch (e: Exception) {
+                    handleError("Error fetching current user data", e)
+                }
+            },
+            onFailure = { error ->
+                Result.failure(error)
+            }
+        )
+    }
+
+    actual suspend fun getUsernameById(userId: String): Result<String?> =
+        withContext(Dispatchers.IO) {
             try {
                 val documentSnapshot = firestore.collection("users")
-                    .document(uid)
+                    .document(userId)
                     .get()
                     .await()
-                documentSnapshot.toObject(UserModel::class.java)
+                val username = documentSnapshot.toObject(UserModel::class.java)?.username
+                Result.success(username)
             } catch (e: Exception) {
-                Log.e(
-                    "UserRepository",
-                    "Błąd podczas pobierania danych użytkownika: ${e.message}",
-                    e
-                )
-                null
-            }
-        } else {
-            null
-        }
-    }
-
-    actual suspend fun getUsernameById(userId: String): String? = withContext(Dispatchers.IO) {
-        try {
-            val documentSnapshot = firestore.collection("users")
-                .document(userId)
-                .get()
-                .await()
-            val userModel = documentSnapshot.toObject(UserModel::class.java)
-            userModel?.username
-        } catch (e: Exception) {
-            Log.e("AuthService", "Błąd podczas pobierania nazwy użytkownika: ${e.message}", e)
-            null
-        }
-    }
-
-    actual suspend fun getUserLabelById(userId: String): String? = withContext(Dispatchers.IO) {
-        try {
-            val documentSnapshot = firestore.collection("users")
-                .document(userId)
-                .get()
-                .await()
-            val userModel = documentSnapshot.toObject(UserModel::class.java)
-            userModel?.label
-        } catch (e: Exception) {
-            Log.e("AuthService", "Błąd podczas pobierania labela: ${e.message}", e)
-            null
-        }
-    }
-
-    actual suspend fun getCurrentUserAvatarPath(): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val userId = firebaseAuth.currentUser?.uid
-                    ?: throw IllegalStateException("User not logged in")
-                val userDocument = firestore.collection("users").document(userId).get().await()
-                userDocument.getString("avatarUrl")
-            } catch (e: Exception) {
-                Log.e("UserRepository", "Error fetching avatar URL", e)
-                null
+                handleError("Error fetching username", e)
             }
         }
-    }
 
-    actual suspend fun updateAvatarUrl(url: String) {
+    actual suspend fun getUserLabelById(userId: String): Result<String?> =
         withContext(Dispatchers.IO) {
             try {
-                val userId = firebaseAuth.currentUser?.uid
-                    ?: throw IllegalStateException("User not logged in")
-                firestore.collection("users").document(userId)
-                    .update("avatarUrl", url)
+                val documentSnapshot = firestore.collection("users")
+                    .document(userId)
+                    .get()
                     .await()
+                val label = documentSnapshot.toObject(UserModel::class.java)?.label
+                Result.success(label)
             } catch (e: Exception) {
-                Log.e("UserRepository", "Error updating avatar URL", e)
-                throw e
+                handleError("Error fetching user label", e)
             }
         }
+
+    actual suspend fun getCurrentUserAvatarPath(): Result<String?> = withContext(Dispatchers.IO) {
+        val userIdResult = getCurrentUserIdOrError()
+        userIdResult.fold(
+            onSuccess = { uid ->
+                try {
+                    val userDocument = firestore.collection("users")
+                        .document(uid)
+                        .get()
+                        .await()
+                    Result.success(userDocument.toObject(UserModel::class.java)?.avatarUrl)
+                } catch (e: Exception) {
+                    handleError("Error fetching avatar URL", e)
+                }
+            }, onFailure = { error ->
+                Result.failure(error)
+            }
+        )
     }
 
-    actual suspend fun getPostsByIds(postIds: List<String>): List<PostModel> =
-        withContext(Dispatchers.IO) {
-            try {
-                postIds.map { postId ->
-                    async {
-                        val documentSnapshot = firestore.collection("posts")
-                            .document(postId)
-                            .get()
-                            .await()
-                        documentSnapshot.toObject(PostModel::class.java)
-                    }
-                }.awaitAll().filterNotNull()
-            } catch (e: Exception) {
-                Log.e("UserRepository", "Error fetching posts by IDs: ${e.message}", e)
-                emptyList()
+    actual suspend fun updateAvatarUrl(url: String): Result<Unit> = withContext(Dispatchers.IO) {
+        val userIdResult = getCurrentUserIdOrError()
+        userIdResult.fold(
+            onSuccess = { uid ->
+                try {
+                    firestore.collection("users")
+                        .document(uid)
+                        .update("avatarUrl", url)
+                        .await()
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    handleError("Error updating avatar URL", e)
+                }
+            },
+            onFailure = { error ->
+                Result.failure(error)
             }
-        }
+        )
+    }
 
-    actual suspend fun getLikedPosts(): Result<List<PostModel>> =
+    actual suspend fun getPostsByIds(postIds: List<String>): Result<List<PostModel>> =
         withContext(Dispatchers.IO) {
             try {
-                val userId = getCurrentUserId() ?: return@withContext Result.failure(
-                    IllegalStateException("User not logged in")
-                )
-
-                val userDocument = firestore.collection("users").document(userId).get().await()
-                val userModel = userDocument.toObject(UserModel::class.java)
-
-                val likedPostIds = userModel?.likedPosts ?: emptyList()
-
-                val posts = likedPostIds.map { postId ->
+                val posts = postIds.map { postId ->
                     async {
-                        val documentSnapshot = firestore.collection("posts")
+                        firestore.collection("posts")
                             .document(postId)
                             .get()
                             .await()
-                        documentSnapshot.toObject(PostModel::class.java)
+                            .toObject(PostModel::class.java)
                     }
                 }.awaitAll().filterNotNull()
-
                 Result.success(posts)
             } catch (e: Exception) {
-                Log.e("UserRepository", "Error fetching liked posts: ${e.message}", e)
-                Result.failure(e)
+                handleError("Error fetching posts by IDs", e)
             }
         }
 
-    actual suspend fun removeLikedPost(postId: String) {
-        val uid = getCurrentUserId()
-        if (uid != null) {
-            try {
-                val userDocRef = firestore.collection("users").document(uid)
-                val postDocRef = firestore.collection("poss").document(postId)
+    actual suspend fun getLikedPosts(): Result<List<PostModel>> = withContext(Dispatchers.IO) {
+        val userIdResult = getCurrentUserIdOrError()
+        userIdResult.fold(
+            onSuccess = { uid ->
+                try {
+                    val userDocument = firestore.collection("users")
+                        .document(uid)
+                        .get()
+                        .await()
+                    val likedPostIds =
+                        userDocument.toObject(UserModel::class.java)?.likedPosts ?: emptyList()
+                    val likedPosts = likedPostIds.map { postId ->
+                        async {
+                            firestore.collection("posts")
+                                .document(postId)
+                                .get()
+                                .await()
+                                .toObject(PostModel::class.java)
+                        }
+                    }.awaitAll().filterNotNull()
+                    Result.success(likedPosts)
+                } catch (e: Exception) {
+                    handleError("Error fetching liked posts", e)
+                }
+            },
+            onFailure = { error ->
+                Result.failure(error)
+            }
+        )
+    }
 
-                firestore.runTransaction { transaction ->
-                    val snapshot = transaction.get(userDocRef)
-                    val likedPosts =
-                        (snapshot.get("likedPosts") as? List<*>)?.filterIsInstance<String>()
+    actual suspend fun removeLikedPost(postId: String): Result<Unit> = withContext(Dispatchers.IO) {
+        val userIdResult = getCurrentUserIdOrError()
+        userIdResult.fold(
+            onSuccess = { uid ->
+                try {
+                    val userDocRef = firestore.collection("users")
+                        .document(uid)
+                    val postDocRef = firestore.collection("posts")
+                        .document(postId)
+
+                    firestore.runTransaction { transaction ->
+                        val userSnapshot = transaction.get(userDocRef)
+                        val likedPosts =
+                            (userSnapshot.get("likedPosts") as? List<*>)?.mapNotNull { it as? String }
+                                ?: emptyList()
+                        val updatedLikedPosts = likedPosts.filterNot { it == postId }
+
+                        val postSnapshot = transaction.get(postDocRef)
+                        val currentLikes = postSnapshot.getLong("likesCount") ?: 0L
+
+                        transaction.update(postDocRef, "likedPosts", updatedLikedPosts)
+                        transaction.update(
+                            postDocRef,
+                            "likesCount",
+                            (currentLikes - 1).coerceAtLeast(0)
+                        )
+
+                        null
+                    }.await()
+                    Result.success(Unit)
+                } catch (e: Exception) {
+                    handleError("Error removing liked post", e)
+                }
+            }, onFailure = { error ->
+                Result.failure(error)
+            }
+        )
+    }
+
+    actual suspend fun getLikedSounds(): Result<List<String>> = withContext(Dispatchers.IO) {
+        val userIdResult = getCurrentUserIdOrError()
+        userIdResult.fold(
+            onSuccess = { uid ->
+                try {
+                    val userDoc = firestore.collection("users")
+                        .document(uid)
+                        .get()
+                        .await()
+                    val likedSounds =
+                        (userDoc.get("likedSounds") as? List<*>)?.filterIsInstance<String>()
                             ?: emptyList()
-
-                    val postSnapshot = transaction.get(postDocRef)
-                    val currentLikes = (postSnapshot.get("likesCount") as? Long) ?: 0L
-
-                    val updatedLikedPosts = likedPosts.filterNot { it == postId }
-                    transaction.update(userDocRef, "likedPosts", updatedLikedPosts)
-
-                    transaction.update(
-                        postDocRef,
-                        "likesCount",
-                        (currentLikes - 1).coerceAtLeast(0)
-                    )
-                }.await()
-            } catch (e: Exception) {
-                Log.e("UserRepository", "Błąd podczas usuwania polubionego posta: ${e.message}", e)
-                throw e
+                    Result.success(likedSounds)
+                } catch (e: Exception) {
+                    handleError("Error fetching liked sounds", e)
+                }
+            }, onFailure = { error ->
+                Result.failure(error)
             }
-        } else {
-            throw Exception("Nie udało się pobrać ID użytkownika.")
-        }
+        )
     }
 
-    actual suspend fun getLikedSounds(): List<String> {
-        val userId = getCurrentUserId() ?: return emptyList()
-        return try {
-            val userDoc = firestore.collection("users").document(userId).get().await()
-            (userDoc.get("likedSounds") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
-        } catch (e: Exception) {
-            println(e)
-            emptyList()
-        }
+    private fun <T> handleError(errorMessage: String, e: Exception): Result<T> {
+        Log.e("UserRepository", "$errorMessage: ${e.message}", e)
+        return Result.failure(e)
     }
-
 }
