@@ -65,6 +65,10 @@ kotlin {
             // Firebase Storage
             implementation(libs.google.firebase.storage.v1102)
             implementation(libs.firebase.appcheck.debug)
+
+            // Data store local preferences
+            implementation(libs.androidx.datastore.core)
+            implementation(libs.androidx.datastore.preferences)
         }
 
         commonMain.dependencies {
@@ -80,7 +84,6 @@ kotlin {
         }
 
         iosMain.dependencies {
-            implementation(libs.firebase.auth.ktx)
         }
     }
 }
@@ -132,5 +135,4 @@ android {
 }
 dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
-    implementation(libs.firebase.auth.ktx)
 }

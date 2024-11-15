@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import org.noisevisionproductions.samplelibrary.auth.UserViewModel
 import org.noisevisionproductions.samplelibrary.composeUI.CustomTopAppBar
 import org.noisevisionproductions.samplelibrary.composeUI.components.DefaultAvatar
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.AvatarManager.UserAvatar
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentButton
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.comments.CommentInputField
@@ -56,8 +57,9 @@ fun PostDetailView(
     likeManager: LikeManager
 ) {
     val postState by postViewModel.getPostById(postId).collectAsState(initial = null)
-    val categoryName by postViewModel.categoryName.collectAsState()
+    val categoryName by postViewModel.categoryNames.collectAsState(initial = emptyMap())
     val username by userViewModel.username.collectAsState()
+    val avatarUrls by userViewModel.avatarUrls.collectAsState(initial = emptyMap())
     val commentState by commentViewModel.getCommentsStateForPost(postId).collectAsState()
     val commentText by commentViewModel.commentText.collectAsState()
     val isCommentFieldVisible by commentViewModel.isCommentFieldVisible.collectAsState()
@@ -66,8 +68,9 @@ fun PostDetailView(
 
     LaunchedEffect(postState) {
         postState?.let { post ->
-            postViewModel.fetchCategoryName(post.categoryId)
+            postViewModel.cacheManager.getCachedCategory(post.categoryId)
             commentViewModel.loadComments(post.postId)
+            userViewModel.fetchAvatarUrl(post.userId)
         }
     }
 
@@ -88,6 +91,8 @@ fun PostDetailView(
             }
         } else {
             val post = postState!!
+            val creatorAvatarUrl = avatarUrls[post.userId] ?: ""
+
             LazyColumn(
                 modifier = Modifier
                     .padding(innerPadding)
@@ -98,8 +103,9 @@ fun PostDetailView(
                 item {
                     PostHeaderSection(
                         post = post,
-                        categoryName = categoryName,
-                        username = username
+                        categoryName = categoryName[post.categoryId] ?: "Unknown Category",
+                        username = username,
+                        avatarUrl = creatorAvatarUrl
                     )
                 }
 
@@ -153,7 +159,12 @@ fun PostDetailView(
 }
 
 @Composable
-fun PostHeaderSection(post: PostModel, categoryName: String, username: String?) {
+fun PostHeaderSection(
+    post: PostModel,
+    categoryName: String,
+    username: String?,
+    avatarUrl: String
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -165,7 +176,15 @@ fun PostHeaderSection(post: PostModel, categoryName: String, username: String?) 
             horizontalArrangement = Arrangement.Center
         ) {
 
-            DefaultAvatar()
+            if (avatarUrl.isNotEmpty()) {
+                UserAvatar(
+                    avatarUrl = avatarUrl,
+                    size = 70.dp,
+                    onClick = { }
+                )
+            } else {
+                DefaultAvatar()
+            }
 
             Spacer(modifier = Modifier.width(16.dp))
 

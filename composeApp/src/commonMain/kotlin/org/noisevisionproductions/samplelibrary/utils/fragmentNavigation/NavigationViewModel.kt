@@ -13,7 +13,7 @@ class NavigationViewModel : ViewModel() {
     val selectedTab = _selectedTab.asStateFlow()
 
     fun navigateToPost(postId: String) {
-        _selectedTab.value = FragmentsTabs.Tab3
+        _selectedTab.value = FragmentsTabs.Tab2
         _navigationEvent.value = postId
     }
 

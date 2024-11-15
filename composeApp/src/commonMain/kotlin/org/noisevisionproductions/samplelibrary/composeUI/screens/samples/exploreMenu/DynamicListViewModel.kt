@@ -59,8 +59,8 @@ class DynamicListViewModel(
     private var cachedLikedSounds: Set<String> = emptySet()
 
     init {
-        loadLikedSounds()
         observeSoundEvents()
+        loadLikedSounds()
     }
 
     private fun observeSoundEvents() {
@@ -112,7 +112,12 @@ class DynamicListViewModel(
     private fun removeDeletedSound(soundId: String) {
         _uiState.update { state ->
             val updatedFileList = state.fileListWithMetadata.filter { it.id != soundId }
-            val updatedFilteredList = state.filteredFileList.filter { it.id != soundId }
+            val updatedFilteredList = applyFiltersAndSort(
+                updatedFileList,
+                state.searchQuery,
+                state.selectedTags,
+                state.sortOption
+            )
             state.copy(
                 fileListWithMetadata = updatedFileList,
                 filteredFileList = updatedFilteredList

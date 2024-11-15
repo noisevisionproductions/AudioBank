@@ -3,11 +3,13 @@ package org.noisevisionproductions.samplelibrary
 import android.app.Application
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import com.google.firebase.FirebaseApp
 import org.noisevisionproductions.samplelibrary.auth.AuthService
 import org.noisevisionproductions.samplelibrary.composeUI.screens.SamplesActivity
@@ -21,6 +23,7 @@ class MainActivity : ComponentActivity() {
     lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
     private lateinit var authService: AuthService
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         authService = AuthService()
@@ -38,6 +41,7 @@ class MainActivity : ComponentActivity() {
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private fun setupPermissionLauncher() {
         requestPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -48,6 +52,8 @@ class MainActivity : ComponentActivity() {
                         downloadAndSaveFile(this, url, name) {
                             Toast.makeText(this, "Pobieranie rozpoczęte", Toast.LENGTH_SHORT).show()
                         }
+                        pendingFileUrl = null
+                        pendingFileName = null
                     }
                 }
             } else {

@@ -40,6 +40,7 @@ import org.noisevisionproductions.samplelibrary.composeUI.components.DefaultAvat
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.forum.likes.LikeManager
 import org.noisevisionproductions.samplelibrary.auth.UserViewModel
+import org.noisevisionproductions.samplelibrary.composeUI.screens.account.AvatarManager.UserAvatar
 import org.noisevisionproductions.samplelibrary.interfaces.formatTimeAgo
 import org.noisevisionproductions.samplelibrary.utils.models.CommentModel
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
@@ -157,6 +158,9 @@ fun CommentItem(
     val userLabels by userViewModel.userLabels.collectAsState()
     val userLabel = userLabels[comment.commentId] ?: "No label"
 
+    val avatarUrls by userViewModel.avatarUrls.collectAsState()
+    val avatarUrl = avatarUrls[comment.userId] ?: ""
+
     val commentLikeStates by likeManager.commentLikeStates.collectAsState()
     val likeState = commentLikeStates[post.postId]?.get(comment.commentId)
 
@@ -165,6 +169,7 @@ fun CommentItem(
 
     LaunchedEffect(comment.userId) {
         userViewModel.fetchLabelForUser(comment.userId)
+        userViewModel.fetchAvatarUrl(comment.userId)
     }
 
     Column(
@@ -175,7 +180,11 @@ fun CommentItem(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
 
-            DefaultAvatar()
+            if (avatarUrl.isNotEmpty()) {
+                UserAvatar(avatarUrl = avatarUrl, size = 70.dp)
+            } else {
+                DefaultAvatar()
+            }
 
             Spacer(modifier = Modifier.width(20.dp))
 

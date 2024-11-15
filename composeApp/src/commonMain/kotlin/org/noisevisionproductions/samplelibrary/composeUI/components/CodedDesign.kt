@@ -2,17 +2,20 @@ package org.noisevisionproductions.samplelibrary.composeUI.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -126,34 +129,12 @@ fun Modifier.bottomShadow() = this
         )
     }
 
-fun Modifier.aboveShadow() = this
-    .graphicsLayer(clip = false) // Allow drawing outside the bounds
-    .drawWithContent {
-        // Draw the content first
-        drawContent()
-
-        // Now draw the shadow above
-        val shadowHeight = 12.dp.toPx()
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color.Black.copy(alpha = 0.4f),
-                    Color.Transparent
-                ),
-                startY = 0f, // Start gradient at the top
-                endY = shadowHeight // Extend below
-            ),
-            topLeft = Offset(0f, -shadowHeight), // Position above the layout
-            size = Size(size.width, shadowHeight)
-        )
-    }
-
 @Composable
 fun DefaultAvatar(modifier: Modifier = Modifier) {
     Icon(
         imageVector = Icons.Default.AccountCircle,
         contentDescription = "Default Avatar",
         modifier = modifier.size(70.dp),
-        tint = colors.backgroundGrayColor
+        tint = colors.backgroundGrayColor,
     )
 }

@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,11 +71,11 @@ fun ForumNavigationHost(
     postViewModel: PostViewModel,
     userViewModel: UserViewModel,
     commentViewModel: CommentViewModel,
+    navigationViewModel: NavigationViewModel,
     userRepository: UserRepository,
     forumRepository: ForumRepository,
-    likeManager: LikeManager,
-    navigationViewModel: NavigationViewModel,
-    postsRepository: PostsRepository
+    postsRepository: PostsRepository,
+    likeManager: LikeManager
 ) {
     var currentScreen by remember { mutableStateOf<ForumScreenNavigation>(ForumScreenNavigation.PostList) }
 
@@ -146,14 +148,14 @@ fun ForumContent(
             onChangeContent = onNavigateToCreate,
             filters = {
                 DropDownMenuWithItems(
-                    label = "Kategorie",
+                    defaultLabel = "Kategorie",
                     options = listOf("Muzyka", "Opinie"),
                     onItemSelected = { category ->
                         postViewModel.setSelectedCategory(category)
                     }
                 )
                 DropDownMenuWithItems(
-                    label = "Sortowanie",
+                    defaultLabel = "Sortowanie",
                     options = listOf("Najnowsze", "Najstarsze"),
                     onItemSelected = { sortingOption ->
                         postViewModel.setSelectedSortingOption(sortingOption)
@@ -294,7 +296,19 @@ fun PostListView(
     val filteredPosts by postViewModel.filteredPosts.collectAsState()
     val categoryNames by postViewModel.categoryNames.collectAsState()
 
-    // Handle loading state
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = postViewModel.firstVisibleItemIndex,
+        initialFirstVisibleItemScrollOffset = postViewModel.firstVisibleItemScrollOffset
+    )
+
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+            .collect { (index, offset) ->
+                postViewModel.firstVisibleItemIndex = index
+                postViewModel.firstVisibleItemScrollOffset = offset
+            }
+    }
+
     when (uiState) {
         is UiState.Loading -> {
             LoadingIndicator()
@@ -315,7 +329,8 @@ fun PostListView(
                     commentViewModel = commentViewModel,
                     userViewModel = userViewModel,
                     onPostClick = onPostClick,
-                    onLoadMore = { postViewModel.onScrollToEnd() }
+                    onLoadMore = { postViewModel.onScrollToEnd() },
+                    listState = listState
                 )
             }
         }
@@ -330,10 +345,9 @@ private fun PostsList(
     commentViewModel: CommentViewModel,
     userViewModel: UserViewModel,
     onPostClick: (PostModel) -> Unit,
-    onLoadMore: () -> Unit
+    onLoadMore: () -> Unit,
+    listState: LazyListState
 ) {
-    val listState = rememberLazyListState()
-
     LazyColumn(state = listState) {
         itemsIndexed(filteredPosts.distinct()) { index, post ->
             PostItem(
@@ -344,7 +358,7 @@ private fun PostsList(
                 onPostClick = onPostClick
             )
 
-            if (index == filteredPosts.size - 1 && !isLoadingMore) {
+            if (index == filteredPosts.size - 3 && !isLoadingMore) {
                 LaunchedEffect(Unit) {
                     onLoadMore()
                 }
@@ -437,7 +451,6 @@ fun PostModelItem(
 ) {
     val isLoading by userViewModel.isLoading.collectAsState()
     val error by userViewModel.error.collectAsState()
-    val textSize = 14.sp
 
     val date = post.timestamp.substringBefore(" ")
 
@@ -589,7 +602,6 @@ fun PostModelItem(
                     ),
                     color = CustomColors.black60,
                     overflow = TextOverflow.Ellipsis,
-                    fontSize = textSize
                 )
                 Text(
                     text = lastComment?.timestamp?.let { formatTimeAgo(it) } ?: "-",
@@ -616,6 +628,7 @@ fun PostModelItem(
                         fontSize = 10.sp
                     ),
                     color = CustomColors.black60,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = lastComment?.username ?: "-",

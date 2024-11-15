@@ -186,4 +186,8 @@ class UploadSoundViewModel(
             it.removeAt(index)
         }
     }
+
+    fun clearSelectedFiles() {
+        _selectedFiles.value = emptyList()
+    }
 }

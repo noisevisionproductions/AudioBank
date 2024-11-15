@@ -1,5 +1,7 @@
 package org.noisevisionproductions.samplelibrary.composeUI
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,9 +20,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import org.noisevisionproductions.samplelibrary.MainActivity
 import org.noisevisionproductions.samplelibrary.interfaces.checkAndRequestStoragePermission
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 actual fun PropertiesMenu(
     fileUrl: String,
@@ -31,7 +33,7 @@ actual fun PropertiesMenu(
     alignRight: Boolean,
     modifier: Modifier
 ) {
-    val activity = LocalContext.current as? MainActivity
+    val context = LocalContext.current
 
     Box(
         modifier = modifier
@@ -45,10 +47,8 @@ actual fun PropertiesMenu(
             DropdownMenuItem(onClick = {
                 onOptionSelected("Zaimportuj")
                 onDismiss()
+                checkAndRequestStoragePermission(fileUrl, fileName, context)
 
-                if (activity != null) {
-                    checkAndRequestStoragePermission(fileUrl, fileName, activity)
-                }
             }) {
                 Text("Zaimportuj do FL Studio")
             }

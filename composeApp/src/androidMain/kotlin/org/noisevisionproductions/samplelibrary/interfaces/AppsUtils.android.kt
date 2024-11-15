@@ -1,26 +1,70 @@
 package org.noisevisionproductions.samplelibrary.interfaces
 
 import android.Manifest
+import android.app.Activity
 import android.app.DownloadManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import org.noisevisionproductions.audiobank.R
-import org.noisevisionproductions.samplelibrary.MainActivity
+import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
+import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
+fun checkAndRequestStoragePermission(
+    fileUrl: String,
+    fileName: String,
+    context: Context
+) {
+    when {
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+            downloadAndSaveFile(context, fileUrl, fileName) {}
+        }
+
+        ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) == PackageManager.PERMISSION_GRANTED -> {
+            downloadAndSaveFile(context, fileUrl, fileName) {}
+        }
+
+        context is Activity -> {
+            ActivityCompat.requestPermissions(
+                context,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                100
+            )
+        }
+
+        else -> {
+            Toast.makeText(
+                context,
+                "Do pobierania plików wymagana jest zgoda na dostęp do pobierania plików.",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 actual fun downloadAndSaveFile(
     context: Any?,
     fileUrl: String,
@@ -29,55 +73,42 @@ actual fun downloadAndSaveFile(
 ) {
     val androidContext = AppContext.get() as Context
 
-    if (fileUrl.isBlank()) {
-        Toast.makeText(androidContext, "Nie wybrano żadnego pliku", Toast.LENGTH_SHORT)
-            .show()
-        return
-    }
+    try {
+        val request = DownloadManager.Request(Uri.parse(fileUrl))
+            .setTitle(fileName)
+            .setDescription("Pobieranie pliku...")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+            .setAllowedOverMetered(true)
+            .setAllowedOverRoaming(true)
 
-    if (fileName.isBlank()) {
-        Toast.makeText(androidContext, "Nie wybrano żadnego pliku", Toast.LENGTH_SHORT)
-            .show()
-        return
-    }
+        val downloadManager =
+            androidContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val downloadId = downloadManager.enqueue(request)
 
-    val request = DownloadManager.Request(Uri.parse(fileUrl))
-        .setTitle(fileName)
-        .setDescription("Pobieranie pliku...")
-        .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-        .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-
-    val downloadManager =
-        androidContext.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-    downloadManager.enqueue(request)
-
-    onCompletion()
-}
-
-fun checkAndRequestStoragePermission(
-    fileUrl: String,
-    fileName: String,
-    activity: MainActivity
-) {
-    val androidContext = activity.applicationContext
-
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-        if (ContextCompat.checkSelfPermission(
-                androidContext, Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            downloadAndSaveFile(androidContext, fileUrl, fileName) {
-                Toast.makeText(androidContext, "Pobieranie rozpoczęte", Toast.LENGTH_SHORT).show()
+        val onComplete = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+                if (id == downloadId) {
+                    onCompletion()
+                    context?.unregisterReceiver(this)
+                }
             }
-        } else {
-            activity.pendingFileUrl = fileUrl
-            activity.pendingFileName = fileName
-            activity.requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }
-    } else {
-        downloadAndSaveFile(androidContext, fileUrl, fileName) {
-            Toast.makeText(androidContext, "Pobieranie rozpoczęte", Toast.LENGTH_SHORT).show()
-        }
+
+        androidContext.registerReceiver(
+            onComplete,
+            IntentFilter(DownloadManager.ACTION_VIEW_DOWNLOADS),
+            Context.RECEIVER_NOT_EXPORTED
+        )
+
+        Toast.makeText(androidContext, "Pobieranie rozpoczęte", Toast.LENGTH_SHORT).show()
+    } catch (e: Exception) {
+        UserErrorInfo(
+            message = "Błąd podczas pobierania dźwięku - ${e.message}",
+            actionType = UserErrorAction.OK,
+            errorId = "DOWNLOAD_SOUND_ERROR"
+        )
     }
 }
 

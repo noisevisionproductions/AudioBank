@@ -24,6 +24,7 @@ import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedE
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
 import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerRepositoryImpl
 import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
+import org.noisevisionproductions.samplelibrary.utils.LocalStorageRepositoryImpl
 
 actual class ViewModelFactory actual constructor(
     private val authService: AuthService,
@@ -37,7 +38,8 @@ actual class ViewModelFactory actual constructor(
     private val errorHandler: ErrorHandler,
     private val musicPlayerService: MusicPlayerService,
     private val avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl,
-    private val postsRepository: PostsRepository
+    private val postsRepository: PostsRepository,
+    private val localStorageRepositoryImpl: LocalStorageRepositoryImpl
 ) : ViewModelProvider.Factory {
     private val sharedSoundEventsManager = SharedSoundEventsManager
 
@@ -87,7 +89,8 @@ actual class ViewModelFactory actual constructor(
             sharedErrorViewModel = sharedErrorViewModel,
             avatarPickerRepositoryImpl = avatarPickerRepositoryImpl,
             likeManager = likeManager,
-            postsRepository = postsRepository
+            postsRepository = postsRepository,
+            localStorageRepositoryImpl = localStorageRepositoryImpl
         )
     }
 

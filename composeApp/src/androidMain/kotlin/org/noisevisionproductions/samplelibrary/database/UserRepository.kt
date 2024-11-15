@@ -71,23 +71,16 @@ actual class UserRepository actual constructor() {
             }
         }
 
-    actual suspend fun getCurrentUserAvatarPath(): Result<String?> = withContext(Dispatchers.IO) {
-        val userIdResult = getCurrentUserIdOrError()
-        userIdResult.fold(
-            onSuccess = { uid ->
-                try {
-                    val userDocument = firestore.collection("users")
-                        .document(uid)
-                        .get()
-                        .await()
-                    Result.success(userDocument.toObject(UserModel::class.java)?.avatarUrl)
-                } catch (e: Exception) {
-                    handleError("Error fetching avatar URL", e)
-                }
-            }, onFailure = { error ->
-                Result.failure(error)
-            }
-        )
+    actual suspend fun getAvatarUrl(userId: String): Result<String?> = withContext(Dispatchers.IO) {
+        try {
+            val userDocument = firestore.collection("users")
+                .document(userId)
+                .get()
+                .await()
+            Result.success(userDocument.toObject(UserModel::class.java)?.avatarUrl)
+        } catch (e: Exception) {
+            handleError("Error fetching avatar URL", e)
+        }
     }
 
     actual suspend fun updateAvatarUrl(url: String): Result<Unit> = withContext(Dispatchers.IO) {

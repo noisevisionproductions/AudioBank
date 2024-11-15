@@ -244,19 +244,19 @@ fun TagItem(
 
 @Composable
 fun DropDownMenuWithItems(
-    label: String,
+    defaultLabel: String,
     options: List<String>,
     onItemSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    var selectedItem by remember { mutableStateOf(label) }
+    var selectedItem by remember { mutableStateOf(defaultLabel) }
 
     Column {
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(16.dp))
                 .border(2.dp, colors.barColor, RoundedCornerShape(16.dp))
-                .background(if (selectedItem == "Sortowanie") Color.Transparent else colors.primaryBackgroundColor)
+                .background(if (selectedItem == defaultLabel) Color.Transparent else colors.primaryBackgroundColor)
                 .clickable { expanded = !expanded }
                 .padding(16.dp)
         ) {
@@ -275,7 +275,7 @@ fun DropDownMenuWithItems(
         ) {
             DropdownMenuItem(
                 onClick = {
-                    selectedItem = label
+                    selectedItem = defaultLabel
                     expanded = false
                     onItemSelected("")
                 },

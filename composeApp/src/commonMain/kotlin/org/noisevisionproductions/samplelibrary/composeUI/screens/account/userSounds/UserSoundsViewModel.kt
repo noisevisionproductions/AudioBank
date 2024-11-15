@@ -36,6 +36,41 @@ class UserSoundsViewModel(
         observeSoundEvents()
     }
 
+    private fun observeSoundEvents() {
+        viewModelScope.launch {
+            sharedSoundEventsManager.soundEvents.collect { event ->
+                when (event) {
+                    is SoundEvent.SoundLiked -> {
+                        val likedSound = _userSounds.value.find { it.id == event.soundId }
+                            ?: storageRepository.getSoundMetadata(event.soundId).getOrNull()
+                        likedSound?.let {
+                            _favoriteSounds.value += it
+                        }
+                    }
+
+                    is SoundEvent.SoundUnliked -> {
+                        _favoriteSounds.value =
+                            _favoriteSounds.value.filter { it.id != event.soundId }
+                    }
+
+                    is SoundEvent.SoundDeleted -> {
+                        _userSounds.value = _userSounds.value.filter { it.id != event.soundId }
+                        _favoriteSounds.value =
+                            _favoriteSounds.value.filter { it.id != event.soundId }
+                    }
+
+                    is SoundEvent.SoundMetadataUpdated -> {
+                        updateLocalSoundMetadata(event.soundId)
+                    }
+
+                    is SoundEvent.SoundUploaded -> {
+                        _userSounds.value = listOf(event.sound) + _userSounds.value
+                    }
+                }
+            }
+        }
+    }
+
     private fun loadUsername() {
         viewModelScope.launch {
             userRepository.getCurrentUser().fold(
@@ -116,39 +151,6 @@ class UserSoundsViewModel(
         }
     }
 
-    private fun observeSoundEvents() {
-        viewModelScope.launch {
-            sharedSoundEventsManager.soundEvents.collect { event ->
-                when (event) {
-                    is SoundEvent.SoundLiked -> {
-                        val likedSound = _userSounds.value.find { it.id == event.soundId }
-                        likedSound?.let {
-                            _favoriteSounds.value += it
-                        }
-                    }
-
-                    is SoundEvent.SoundUnliked -> {
-                        _favoriteSounds.value =
-                            _favoriteSounds.value.filter { it.id != event.soundId }
-                    }
-
-                    is SoundEvent.SoundDeleted -> {
-                        _userSounds.value = _userSounds.value.filter { it.id != event.soundId }
-                        _favoriteSounds.value =
-                            _favoriteSounds.value.filter { it.id != event.soundId }
-                    }
-
-                    is SoundEvent.SoundMetadataUpdated -> {
-                        updateLocalSoundMetadata(event.soundId)
-                    }
-
-                    is SoundEvent.SoundUploaded -> {
-                        _userSounds.value = listOf(event.sound) + _userSounds.value
-                    }
-                }
-            }
-        }
-    }
 
     private fun updateLocalSoundMetadata(soundId: String) {
         viewModelScope.launch {

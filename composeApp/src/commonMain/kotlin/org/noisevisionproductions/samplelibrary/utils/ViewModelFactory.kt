@@ -21,6 +21,7 @@ import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedE
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
 import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerRepositoryImpl
 import org.noisevisionproductions.samplelibrary.utils.fragmentNavigation.NavigationViewModel
+import org.noisevisionproductions.samplelibrary.utils.LocalStorageRepositoryImpl
 
 expect class ViewModelFactory(
     authService: AuthService,
@@ -34,7 +35,8 @@ expect class ViewModelFactory(
     errorHandler: ErrorHandler,
     musicPlayerService: MusicPlayerService,
     avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl,
-    postsRepository: PostsRepository
+    postsRepository: PostsRepository,
+    localStorageRepositoryImpl: LocalStorageRepositoryImpl
 ) {
     fun createPostViewModel(): PostViewModel
     fun createCommentViewModel(): CommentViewModel

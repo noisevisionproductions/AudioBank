@@ -88,7 +88,10 @@ fun SoundNavigationHost(
             UploadSoundScreen(
                 uploadSoundViewModel = uploadSoundViewModel,
                 filePicker = filePicker,
-                onNavigateBack = { currentScreen = SoundScreenNavigation.SoundList }
+                onNavigateBack = {
+                    uploadSoundViewModel.clearSelectedFiles()
+                    currentScreen = SoundScreenNavigation.SoundList
+                }
             )
         }
     }
@@ -298,7 +301,7 @@ fun SampleListContent(
 
     val filters: @Composable () -> Unit = {
         DropDownMenuWithItems(
-            label = "Sortowanie",
+            defaultLabel = "Sortowanie",
             options = listOf("Najnowsze", "Najstarsze"),
             onItemSelected = { sortingOption ->
                 dynamicListViewModel.handleAction(

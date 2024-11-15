@@ -8,7 +8,7 @@ expect class UserRepository() {
     suspend fun getCurrentUser(): Result<UserModel?>
     suspend fun getUsernameById(userId: String): Result<String?>
     suspend fun getUserLabelById(userId: String): Result<String?>
-    suspend fun getCurrentUserAvatarPath(): Result<String?>
+    suspend fun getAvatarUrl(userId: String): Result<String?>
     suspend fun updateAvatarUrl(url: String): Result<Unit>
     suspend fun getPostsByIds(postIds: List<String>): Result<List<PostModel>>
     suspend fun getLikedPosts(): Result<List<PostModel>>

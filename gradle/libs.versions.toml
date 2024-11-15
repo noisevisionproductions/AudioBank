@@ -30,6 +30,7 @@ coilCompose = "2.7.0"
 compose-plugin = "1.6.11"
 converterGson = "2.11.0"
 core = "2.5"
+datastorePreferences = "1.1.1"
 firebaseAnalyticsKtx = "22.1.2"
 firebaseAuthKtx = "23.1.0"
 firebaseBom = "33.5.1"
@@ -77,6 +78,8 @@ foundationLayoutAndroid = "1.7.2"
 
 [libraries]
 androidx-activity-compose-v192 = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-datastore-core = { module = "androidx.datastore:datastore-core", version.ref = "datastorePreferences" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "androidxFoundation" }
 androidx-foundation-layout = { module = "androidx.compose.foundation:foundation-layout", version.ref = "foundationLayout" }
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }

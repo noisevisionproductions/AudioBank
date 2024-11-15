@@ -34,6 +34,11 @@ class UserViewModel(
     private var _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    private val avatarCache = mutableMapOf<String, String?>()
+
+    private val _avatarUrls = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val avatarUrls: StateFlow<Map<String, String?>> = _avatarUrls.asStateFlow()
+
     init {
         fetchUserData()
     }
@@ -85,6 +90,24 @@ class UserViewModel(
                     println("Error fetching label for user ID $userId: ${e.message}")
                 }
             )
+        }
+    }
+
+    fun fetchAvatarUrl(userId: String) {
+        viewModelScope.launch {
+            if (avatarCache.containsKey(userId)) {
+                _avatarUrls.value += (userId to avatarCache[userId])
+                return@launch
+            }
+
+            userRepository.getAvatarUrl(userId).onSuccess { url ->
+                avatarCache[userId] = url
+                _avatarUrls.value += (userId to url)
+            }.onFailure { error ->
+                println(error)
+                avatarCache[userId] = null
+                _avatarUrls.value += (userId to null)
+            }
         }
     }
 }

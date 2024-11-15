@@ -49,6 +49,7 @@ import org.noisevisionproductions.samplelibrary.errors.ErrorLogger
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.ErrorDialogManager
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedErrorViewModel
 import org.noisevisionproductions.samplelibrary.interfaces.MusicPlayerService
+import org.noisevisionproductions.samplelibrary.utils.LocalStorageRepositoryImpl
 import org.noisevisionproductions.samplelibrary.utils.ViewModelFactory
 import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerRepositoryImpl
 import org.noisevisionproductions.samplelibrary.utils.files.FilePicker
@@ -74,6 +75,7 @@ fun BarWithFragmentsList(
     val commentRepository = remember { CommentRepository() }
     val postsRepository = remember { PostsRepository() }
     val firebaseStorageRepository = remember { FirebaseStorageRepository() }
+    val localStorageRepositoryImpl = remember { LocalStorageRepositoryImpl() }
 
     val viewModelFactory = remember {
         ViewModelFactory(
@@ -88,7 +90,8 @@ fun BarWithFragmentsList(
             errorHandler,
             musicPlayerService,
             avatarPickerRepositoryImpl,
-            postsRepository
+            postsRepository,
+            localStorageRepositoryImpl
         )
     }
 
@@ -104,19 +107,7 @@ fun BarWithFragmentsList(
     val currentTab by navigationViewModel.selectedTab.collectAsState()
     var currentScreen by remember { mutableStateOf(FragmentsTabs.Tab1) }
 
-    var avatarPath by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        userRepository.getCurrentUserAvatarPath().fold(
-            onSuccess = { path ->
-                avatarPath = path
-            },
-            onFailure = { error ->
-                println("Error fetching avatar path: ${error.message}")
-                avatarPath = null
-            }
-        )
-    }
+    val avatarUrl by accountViewModel.avatarUrl.collectAsState()
 
     LaunchedEffect(currentTab) {
         currentScreen = currentTab
@@ -129,16 +120,16 @@ fun BarWithFragmentsList(
         ) {
             Box(
                 modifier = Modifier
-                    .height(150.dp)
+                    .height(110.dp)
                     .fillMaxWidth()
             ) {
                 BackgroundWithCirclesWithAvatar(
                     backgroundColor = colors.primaryBackgroundColor,
                     modifier = Modifier.matchParentSize()
                 )
-                if (avatarPath != null) {
+                if (avatarUrl != null) {
                     UserAvatar(
-                        avatarUrl = avatarPath!!,
+                        avatarUrl = avatarUrl!!,
                         size = 90.dp,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)

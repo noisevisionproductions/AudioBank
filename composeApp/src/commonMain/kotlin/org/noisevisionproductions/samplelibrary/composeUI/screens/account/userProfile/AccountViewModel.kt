@@ -14,6 +14,7 @@ import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
 import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import org.noisevisionproductions.samplelibrary.errors.handleGivenErrors.SharedErrorViewModel
 import org.noisevisionproductions.samplelibrary.utils.files.AvatarPickerRepositoryImpl
+import org.noisevisionproductions.samplelibrary.utils.LocalStorageRepositoryImpl
 import org.noisevisionproductions.samplelibrary.utils.models.PostModel
 
 class AccountViewModel(
@@ -22,7 +23,8 @@ class AccountViewModel(
     private val postsRepository: PostsRepository,
     private val firebaseStorageRepository: FirebaseStorageRepository,
     private val sharedErrorViewModel: SharedErrorViewModel,
-    private val avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl
+    private val avatarPickerRepositoryImpl: AvatarPickerRepositoryImpl,
+    private val localStorageRepositoryImpl: LocalStorageRepositoryImpl
 ) : ViewModel() {
     private val _userState = MutableStateFlow<UserState>(UserState.Loading)
     val userState = _userState.asStateFlow()
@@ -33,11 +35,19 @@ class AccountViewModel(
     private val _createdPosts = MutableStateFlow<List<PostModel>>(emptyList())
     val createdPosts = _createdPosts.asStateFlow()
 
+    private val _avatarUrl = MutableStateFlow<String?>(null)
+    val avatarUrl: StateFlow<String?> = _avatarUrl.asStateFlow()
+
     init {
-        observeLikedPosts()
-        loadUserData()
-        loadLikedPosts()
-        loadCreatedPosts()
+        viewModelScope.launch {
+            localStorageRepositoryImpl.getAvatarUrl()?.let { url ->
+                _avatarUrl.value = url
+            }
+            observeLikedPosts()
+            loadUserData()
+            loadLikedPosts()
+            loadCreatedPosts()
+        }
     }
 
     private fun observeLikedPosts() {
@@ -157,6 +167,9 @@ class AccountViewModel(
                 firebaseStorageRepository.uploadImage(filePath)
                     .onSuccess { imageUrl ->
                         userRepository.updateAvatarUrl(imageUrl).onSuccess {
+                            _avatarUrl.value = imageUrl
+                            localStorageRepositoryImpl.saveAvatarUrl(imageUrl)
+                            localStorageRepositoryImpl.saveAvatarImage(filePath)
                             loadUserData()
                         }.onFailure { error ->
                             UserErrorInfo(
@@ -182,6 +195,7 @@ class AccountViewModel(
             }
         }
     }
+
 
     fun removeLikedPost(postId: String) {
         viewModelScope.launch {

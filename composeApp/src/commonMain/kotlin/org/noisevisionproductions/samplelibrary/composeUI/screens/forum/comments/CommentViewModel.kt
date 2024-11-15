@@ -97,7 +97,6 @@ class CommentViewModel(
             },
             onFailure = { exception ->
                 println(exception)
-                // Optionally, handle the error state in the UI or logging system if needed
                 likeManager.initializeCommentLikeState(
                     postId,
                     comment.commentId,
@@ -107,7 +106,6 @@ class CommentViewModel(
             }
         )
 
-        // Recursively initialize like states for all replies
         comment.replies.forEach { reply ->
             initializeLikeStateForCommentAndReplies(postId, reply)
         }
@@ -229,7 +227,6 @@ class CommentViewModel(
                     replies = emptyList()
                 )
 
-                // Result.fold jest wystarczający - nie potrzebujemy zewnętrznego try-catch
                 commentRepository.addCommentToPost(postId, newComment).fold(
                     onSuccess = {
                         commentsCache.remove(postId)
@@ -238,9 +235,8 @@ class CommentViewModel(
                         _isCommentFieldVisible.value = false
                     },
                     onFailure = { throwable ->
-                        // Wszystkie błędy z CommentService są już jako AppError
                         val error =
-                            throwable as AppError // bezpieczny cast, bo wiemy że CommentService zawsze zwraca AppError
+                            throwable as AppError
                         val userErrorInfo = errorHandler.handleUserError(
                             error = error,
                             errorId = "add_comment",

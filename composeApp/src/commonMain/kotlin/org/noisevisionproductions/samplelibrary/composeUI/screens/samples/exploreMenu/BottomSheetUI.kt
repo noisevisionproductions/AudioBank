@@ -1,6 +1,5 @@
 package org.noisevisionproductions.samplelibrary.composeUI.screens.samples.exploreMenu
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,9 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -27,29 +24,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.RenderEffect
-import androidx.compose.ui.graphics.drawOutline
-import androidx.compose.ui.graphics.drawscope.Fill
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.painterResource
 import org.noisevisionproductions.samplelibrary.composeUI.CustomColors
 import org.noisevisionproductions.samplelibrary.composeUI.PropertiesMenu
-import org.noisevisionproductions.samplelibrary.composeUI.components.aboveShadow
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.mediaPlayer.MusicPlayerSlider
 import org.noisevisionproductions.samplelibrary.composeUI.screens.samples.mediaPlayer.PlayPauseButton
+import org.noisevisionproductions.samplelibrary.errors.UserErrorAction
+import org.noisevisionproductions.samplelibrary.errors.UserErrorInfo
 import org.noisevisionproductions.samplelibrary.interfaces.poppinsFontFamily
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_heart
@@ -204,7 +192,11 @@ fun BottomSheetCustomUI(
                         isPlaying = isPlaying,
                         currentlyPlayingUrl = currentlyPlayingUrl,
                         songUrl = songUrl,
-                        onPlayPauseClick = onPlayPauseClick,
+                        onPlayPauseClick = {
+                            if (songUrl.isNotEmpty()) {
+                                onPlayPauseClick()
+                            }
+                        },
                         iconColor = colors.textColorMain
                     )
 
@@ -224,7 +216,7 @@ fun BottomSheetCustomUI(
                     contentDescription = if (isLiked) "Unfavorite" else "Favorite",
                     modifier = Modifier
                         .size(40.dp)
-                        .clickable { onLikeClick(songId) },
+                        .clickable(enabled = songId.isNotEmpty()) { onLikeClick(songId) },
                     colorFilter = ColorFilter.tint(colors.barColor)
                 )
 
