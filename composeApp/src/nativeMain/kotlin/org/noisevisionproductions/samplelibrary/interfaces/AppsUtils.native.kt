@@ -115,3 +115,26 @@ actual class AppsUtils actual constructor() {
     }
 
 }
+
+actual fun poppinsFontFamily(): FontFamily {
+    TODO("Not yet implemented")
+}
+
+actual fun downloadAndSaveFile(
+    context: Any?,
+    fileUrl: String,
+    fileName: String,
+    onCompletion: () -> Unit
+) {
+}
+
+actual fun showPostCreatedMessage(message: String) {
+}
+
+actual fun formatTimeAgo(timestamp: String): String {
+    TODO("Not yet implemented")
+}
+
+actual fun getCurrentTimestamp(): String {
+    TODO("Not yet implemented")
+}

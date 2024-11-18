@@ -8,11 +8,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Divider
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
@@ -68,188 +71,172 @@ fun BottomSheetCustomUI(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)),
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.backgroundWhiteColor)
+                .padding(16.dp)
         ) {
+            // Header with drag handle
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.primaryBackgroundColor)
-                    .padding(top = 10.dp)
+                    .padding(bottom = 16.dp),
+                contentAlignment = Alignment.Center
             ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(
+                            color = colors.backgroundDarkGrayColor,
+                            shape = RoundedCornerShape(2.dp)
+                        )
+                )
+            }
+
+            // Title
+            Text(
+                text = title,
+                style = TextStyle(
+                    fontFamily = poppinsFontFamily(),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 18.sp
+                ),
+                color = colors.textColorMain,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+
+            // Tags
+            if (tags.isNotEmpty()) {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Divider(
-                        color = CustomColors.primary100,
-                        thickness = 2.dp,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = title,
-                        style = TextStyle(
-                            fontFamily = poppinsFontFamily(),
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 14.sp
-                        ),
-                        color = CustomColors.primary100,
-                        modifier = Modifier
-                            .padding(8.dp)
-                            .weight(4f),
-                        textAlign = TextAlign.Center
-                    )
-                    Divider(
-                        color = CustomColors.primary100,
-                        thickness = 2.dp,
-                        modifier = Modifier.weight(1f)
-                    )
+                    tags.forEach { tag ->
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 4.dp)
+                                .background(
+                                    color = colors.primaryBackgroundColorLight,
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                        ) {
+                            Text(
+                                text = tag,
+                                modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                                style = TextStyle(fontSize = 12.sp),
+                                color = colors.textColorMain
+                            )
+                        }
+                    }
                 }
             }
 
+            // Music info and controls
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(colors.primaryBackgroundColor)
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = when (tags.size) {
-                    1 -> Arrangement.Center
-                    2 -> Arrangement.spacedBy(100.dp, Alignment.CenterHorizontally)
-                    else -> Arrangement.SpaceEvenly
-                }
-            ) {
-                tags.forEach { tag ->
-                    Text(
-                        text = tag,
-                        style = MaterialTheme.typography.body2,
-                        textAlign = TextAlign.Center,
-                        fontSize = 8.sp
-                    )
-                }
-            }
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.primaryBackgroundColor)
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 20.dp),
+                    .padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left side - Tone
+                // Tone & BPM
                 Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(48.dp)
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = tone,
-                        style = MaterialTheme.typography.body1,
-                        fontSize = 10.sp
-                    )
-                    Text(
-                        text = "TON",
-                        style = MaterialTheme.typography.body2,
-                        fontSize = 10.sp
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        InfoItem(label = "TON", value = tone)
+                        InfoItem(label = "BPM", value = bpm)
+                    }
                 }
+            }
 
-                // BPM
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(48.dp)
-                ) {
-                    Text(
-                        text = bpm,
-                        style = MaterialTheme.typography.body1,
-                        fontSize = 10.sp
-                    )
-                    Text(
-                        text = "BPM",
-                        style = MaterialTheme.typography.body2,
-                        fontSize = 10.sp
-                    )
-                }
-
-                // Playback controls group
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+            // Playback controls
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { onPreviousClick() }) {
                     Image(
                         painter = painterResource(Res.drawable.icon_previous),
-                        contentDescription = "Previous sound",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clickable { onPreviousClick() },
+                        contentDescription = "Previous",
+                        modifier = Modifier.size(32.dp),
                         colorFilter = ColorFilter.tint(colors.textColorMain)
                     )
+                }
 
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(colors.primaryBackgroundColor, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
                     PlayPauseButton(
                         isPlaying = isPlaying,
                         currentlyPlayingUrl = currentlyPlayingUrl,
                         songUrl = songUrl,
-                        onPlayPauseClick = {
-                            if (songUrl.isNotEmpty()) {
-                                onPlayPauseClick()
-                            }
-                        },
-                        iconColor = colors.textColorMain
-                    )
-
-                    Image(
-                        painter = painterResource(Res.drawable.icon_next),
-                        contentDescription = "Next sound",
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clickable { onNextClick() },
-                        colorFilter = ColorFilter.tint(colors.textColorMain)
+                        onPlayPauseClick = onPlayPauseClick,
+                        iconColor = colors.backgroundWhiteColor
                     )
                 }
 
-                // Heart icon
-                Image(
-                    painter = painterResource(if (isLiked) Res.drawable.icon_heart_filled else Res.drawable.icon_heart),
-                    contentDescription = if (isLiked) "Unfavorite" else "Favorite",
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clickable(enabled = songId.isNotEmpty()) { onLikeClick(songId) },
-                    colorFilter = ColorFilter.tint(colors.barColor)
-                )
-
-                // Properties menu
-                var expanded by remember { mutableStateOf(false) }
-                Image(
-                    painter = painterResource(Res.drawable.icon_properties_menu),
-                    contentDescription = "Properties menu from bottom sheet",
-                    colorFilter = ColorFilter.tint(colors.propertiesColorBottomSheet),
-                    modifier = Modifier
-                        .clickable { expanded = true }
-                        .size(40.dp)
-                )
-
-                PropertiesMenu(
-                    fileUrl = songUrl,
-                    fileName = title,
-                    expanded = expanded,
-                    onDismiss = { expanded = false },
-                    onOptionSelected = { option ->
-                        println("Selected option: $option")
-                    },
-                    alignRight = true
-                )
+                IconButton(onClick = { onNextClick() }) {
+                    Image(
+                        painter = painterResource(Res.drawable.icon_next),
+                        contentDescription = "Next",
+                        modifier = Modifier.size(32.dp),
+                        colorFilter = ColorFilter.tint(colors.textColorMain)
+                    )
+                }
             }
 
-            Row {
-                MusicPlayerSlider(
-                    progress = progress,
-                    onValueChange = onSliderChange,
-                    onSeek = onSeek
-                )
-            }
+            // Progress slider
+            MusicPlayerSlider(
+                progress = progress,
+                onValueChange = onSliderChange,
+                onSeek = onSeek,
+                songId = songId,
+                isLiked = isLiked,
+                onLikeClick = onLikeClick,
+                songUrl = songUrl,
+                title = title,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
         }
+    }
+}
+
+@Composable
+private fun InfoItem(
+    label: String,
+    value: String
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = value,
+            style = TextStyle(
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium
+            ),
+            color = colors.textColorMain
+        )
+        Text(
+            text = label,
+            style = TextStyle(fontSize = 12.sp),
+            color = colors.hintTextColorMedium
+        )
     }
 }

@@ -1,11 +1,16 @@
 package org.noisevisionproductions.samplelibrary.composeUI
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -26,7 +32,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.AlertDialog
@@ -39,6 +47,7 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
+import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
@@ -46,6 +55,8 @@ import androidx.compose.material.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.runtime.Composable
@@ -60,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -73,14 +85,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import org.jetbrains.compose.resources.painterResource
-import org.noisevisionproductions.samplelibrary.composeUI.components.bottomShadow
+import org.noisevisionproductions.samplelibrary.composeUI.components.topShadow
 import org.noisevisionproductions.samplelibrary.composeUI.screens.colors
 import org.noisevisionproductions.samplelibrary.interfaces.poppinsFontFamily
 import samplelibrary.composeapp.generated.resources.Res
 import samplelibrary.composeapp.generated.resources.icon_create
 import samplelibrary.composeapp.generated.resources.icon_error
 import samplelibrary.composeapp.generated.resources.icon_filters
-
 
 @Composable
 fun RowWithSearchBar(
@@ -96,123 +107,154 @@ fun RowWithSearchBar(
     var isExpanded by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Image(
-            painter = painterResource(Res.drawable.icon_create),
-            contentDescription = "Create new",
+    Column {
+        Row(
             modifier = Modifier
-                .background(colors.backgroundGrayColor)
-                .size(50.dp)
-                .clickable(
-                    onClick = { onChangeContent() },
-                    indication = rememberRipple(bounded = true),
-                    interactionSource = remember { MutableInteractionSource() }
-                )
-        )
-
-        // Pole wyszukiwania
-        Box(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 10.dp, vertical = 8.dp)
-                .clip(RoundedCornerShape(25.dp))
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            TextField(
+            // Create new button
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(colors.primaryBackgroundColorLight, CircleShape)
+                    .clickable(onClick = onChangeContent),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.icon_create),
+                    contentDescription = "Create new",
+                    modifier = Modifier.size(24.dp),
+                    colorFilter = ColorFilter.tint(colors.textColorMain)
+                )
+            }
+
+            // Search field
+            BasicTextField(
                 value = searchText,
                 onValueChange = {
                     searchText = it
                     onSearchTextChanged(it)
                 },
                 singleLine = true,
-                placeholder = {
-                    Text(placeholderText)
-                },
-                leadingIcon = {
-                    Icon(Icons.Filled.Search, contentDescription = "Search icon")
-                },
-                colors = TextFieldDefaults.textFieldColors(
-                    backgroundColor = colors.backgroundDarkGrayColor,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
+                textStyle = TextStyle(
+                    fontSize = 16.sp,
+                    color = colors.textColorMain
                 ),
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Ikona do rozwijania filtrów
-        Image(
-            painterResource(Res.drawable.icon_filters),
-            contentDescription = "Filters",
-            colorFilter = ColorFilter.tint(colors.textColorMain),
-            modifier = Modifier
-                .background(colors.backgroundGrayColor)
-                .size(40.dp)
-                .clickable(
-                    onClick = {
-                        isExpanded = !isExpanded
-                    }, // Zmienna odpowiedzialna za rozwijanie filtrów
-                    indication = rememberRipple(bounded = true),
-                    interactionSource = remember { MutableInteractionSource() }
-                )
-        )
-    }
-
-    val targetHeight = if (tags.isNullOrEmpty()) 90.dp else 130.dp
-    val expandedHeight by animateDpAsState(targetValue = if (isExpanded) targetHeight else 0.dp)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(expandedHeight)
-            .padding(vertical = 8.dp, horizontal = 16.dp)
-    ) {
-        if (isExpanded) {
-            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                filters()
-            }
-
-            tags?.let {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Usuń tagi",
+                    .weight(1f)
+                    .height(48.dp)
+                    .background(colors.backgroundWhiteColor, RoundedCornerShape(24.dp)),
+                decorationBox = { innerTextField ->
+                    Row(
                         modifier = Modifier
-                            .size(24.dp)
-                            .clickable { onResetTags() }
-                    )
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-
-                        items(tags) { tag ->
-                            TagItem(
-                                tag = tag,
-                                isSelected = selectedTags.contains(tag),
-                                onTagClick = onTagSelected
-                            )
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = "Search",
+                            tint = colors.hintTextColorMedium,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 8.dp),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (searchText.isEmpty()) {
+                                Text(
+                                    text = placeholderText,
+                                    color = colors.hintTextColorLight,
+                                    fontSize = 16.sp
+                                )
+                            }
+                            innerTextField()
                         }
                     }
                 }
+            )
 
+            // Filter button
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(
+                        if (isExpanded) colors.primaryBackgroundColor else colors.primaryBackgroundColorLight,
+                        CircleShape
+                    )
+                    .clickable { isExpanded = !isExpanded },
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painterResource(Res.drawable.icon_filters),
+                    contentDescription = "Filters",
+                    modifier = Modifier.size(24.dp),
+                    colorFilter = ColorFilter.tint(
+                        if (isExpanded) colors.backgroundWhiteColor else colors.textColorMain
+                    )
+                )
+            }
+        }
+
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 16.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    filters()
+                }
+
+                if (!tags.isNullOrEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(
+                            onClick = onResetTags,
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(colors.backgroundWhiteColor, CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Default.Clear,
+                                contentDescription = "Clear tags",
+                                tint = colors.textColorMain,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+
+                        LazyRow(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(tags) { tag ->
+                                TagItem(
+                                    tag = tag,
+                                    isSelected = selectedTags.contains(tag),
+                                    onTagClick = onTagSelected
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -227,17 +269,18 @@ fun TagItem(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
-            .border(2.dp, colors.barColor, RoundedCornerShape(16.dp))
             .background(
-                if (isSelected) colors.primaryBackgroundColor else Color.Transparent,
-                shape = RoundedCornerShape(16.dp)
+                if (isSelected) colors.primaryBackgroundColor
+                else colors.backgroundWhiteColor
             )
-            .padding(8.dp)
-            .clickable { onTagClick(tag) },
+            .clickable { onTagClick(tag) }
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(
             text = tag,
-            color = CustomColors.black60
+            fontSize = 14.sp,
+            color = if (isSelected) colors.backgroundWhiteColor
+            else colors.textColorMain
         )
     }
 }
@@ -251,55 +294,77 @@ fun DropDownMenuWithItems(
     var expanded by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf(defaultLabel) }
 
-    Column {
+    Box {
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .border(2.dp, colors.barColor, RoundedCornerShape(16.dp))
-                .background(if (selectedItem == defaultLabel) Color.Transparent else colors.primaryBackgroundColor)
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (selectedItem == defaultLabel)
+                        colors.backgroundWhiteColor
+                    else
+                        colors.primaryBackgroundColor
+                )
                 .clickable { expanded = !expanded }
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            Text(
-                text = selectedItem,
-                color = colors.barColor,
-                modifier = Modifier.align(Alignment.CenterStart)
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = selectedItem,
+                    fontSize = 14.sp,
+                    color = if (selectedItem == defaultLabel)
+                        colors.textColorMain
+                    else
+                        colors.backgroundWhiteColor
+                )
+                Icon(
+                    imageVector = if (expanded)
+                        Icons.Default.KeyboardArrowUp
+                    else
+                        Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Expand",
+                    tint = if (selectedItem == defaultLabel)
+                        colors.textColorMain
+                    else
+                        colors.backgroundWhiteColor,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
 
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .background(colors.backgroundDarkGrayColor)
+            modifier = Modifier.background(colors.backgroundWhiteColor)
         ) {
             DropdownMenuItem(
                 onClick = {
                     selectedItem = defaultLabel
                     expanded = false
                     onItemSelected("")
-                },
-                modifier = Modifier
-                    .background(Color.Transparent)
+                }
             ) {
                 Text(
                     text = "Wyczyść filtry",
-                    color = colors.textColorMain,
+                    fontSize = 14.sp,
+                    color = colors.textColorMain
                 )
             }
+
             options.forEach { option ->
                 DropdownMenuItem(
                     onClick = {
                         selectedItem = option
                         expanded = false
                         onItemSelected(option)
-                    },
-                    modifier = Modifier
-                        .background(Color.Transparent)
+                    }
                 ) {
                     Text(
                         text = option,
-                        color = colors.textColorMain,
+                        fontSize = 14.sp,
+                        color = colors.textColorMain
                     )
                 }
             }
@@ -454,34 +519,47 @@ fun CustomOutlinedTextField(
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.body1
-            )
-        },
-        singleLine = true,
-        isError = isError,
-        enabled = isEnabled,
-        modifier = modifier.fillMaxWidth(),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            backgroundColor = colors.backgroundWhiteColor,
-            focusedBorderColor = colors.textColorMain,
-            unfocusedBorderColor = colors.textColorMain,
-            focusedLabelColor = colors.textColorMain,
-            unfocusedLabelColor = colors.textColorMain,
-            cursorColor = colors.textColorMain
-        ),
-        keyboardOptions = KeyboardOptions(
-            imeAction = imeAction
-        ),
-        keyboardActions = keyboardActions,
-        shape = RoundedCornerShape(30.dp),
-        textStyle = TextStyle(fontSize = 16.sp),
-    )
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.backgroundWhiteColor, RoundedCornerShape(12.dp))
+    ) {
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            enabled = isEnabled,
+            singleLine = true,
+            textStyle = TextStyle(
+                fontSize = 16.sp,
+                color = colors.textColorMain
+            ),
+            cursorBrush = SolidColor(colors.primaryBackgroundColor),
+            keyboardOptions = KeyboardOptions(
+                imeAction = imeAction,
+                keyboardType = keyboardType
+            ),
+            keyboardActions = keyboardActions,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .height(48.dp),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (value.isEmpty()) {
+                        Text(
+                            text = label,
+                            color = colors.hintTextColorMedium,
+                            fontSize = 16.sp
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -491,44 +569,60 @@ fun CustomTopAppBar(
     onBackPressed: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
-    TopAppBar(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(75.dp)
-            .bottomShadow()
-            .zIndex(1f),
-        title = {
+            .height(64.dp)
+            .topShadow(),
+        color = colors.backgroundWhiteColor
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (onNavigateBack != null) {
+                IconButton(
+                    onClick = { onBackPressed?.invoke() ?: onNavigateBack() },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            color = colors.primaryBackgroundColorLight,
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = colors.textColorMain,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+
             Text(
                 text = title,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 style = TextStyle(
                     fontFamily = poppinsFontFamily(),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 20.sp,
+                    color = colors.textColorMain
                 ),
-                color = CustomColors.black100,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp)
             )
-        },
-        navigationIcon = onNavigateBack?.let {
-            {
-                IconButton(onClick = onNavigateBack) {
-                    IconButton(onClick = {
-                        onBackPressed?.invoke() ?: onNavigateBack()
-                    }) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                }
-            }
-        },
-        actions = actions,
-        backgroundColor = colors.primaryBackgroundColor,
-        contentColor = colors.textColorMain,
-        elevation = 0.dp
-    )
+
+            Row(
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+                content = actions
+            )
+        }
+    }
 }
 
 @Composable

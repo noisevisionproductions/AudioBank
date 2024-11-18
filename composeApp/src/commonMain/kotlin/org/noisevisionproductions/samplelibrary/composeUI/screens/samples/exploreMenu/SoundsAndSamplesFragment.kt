@@ -24,6 +24,7 @@ import androidx.compose.material.BottomSheetScaffold
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Divider
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.IconButton
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.rememberBottomSheetScaffoldState
@@ -38,9 +39,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.jetbrains.compose.resources.painterResource
@@ -122,66 +125,65 @@ fun UploadSoundScreen(
 
 @Composable
 fun SampleListHeader() {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+            .background(colors.primaryBackgroundColorLight)
+            .padding(vertical = 12.dp)
     ) {
-        Box(
-            modifier = Modifier.size(40.dp),
-        )
-        Text(
-            text = "Nazwa",
-            style = TextStyle(
-                fontFamily = poppinsFontFamily(),
-                fontWeight = FontWeight.Normal,
-                fontSize = 14.sp
-            ),
-            color = CustomColors.black50,
-            modifier = Modifier.weight(2f),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "Czas",
-            style = TextStyle(
-                fontFamily = poppinsFontFamily(),
-                fontWeight = FontWeight.Normal,
-                fontSize = 14.sp
-            ),
-            color = CustomColors.black50,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "Ton",
-            style = TextStyle(
-                fontFamily = poppinsFontFamily(),
-                fontWeight = FontWeight.Normal,
-                fontSize = 14.sp
-            ),
-            color = CustomColors.black50,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center
-        )
-        Text(
-            text = "BPM",
-            style = TextStyle(
-                fontFamily = poppinsFontFamily(),
-                fontWeight = FontWeight.Normal,
-                fontSize = 14.sp
-            ),
-            color = CustomColors.black50,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center
-        )
-        Box(
-            modifier = Modifier.weight(1f)
-        ) {}
-        Box(
-            modifier = Modifier.weight(1f)
-        ) {}
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Nazwa",
+                style = TextStyle(
+                    fontFamily = poppinsFontFamily(),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp
+                ),
+                color = colors.textColorMain,
+                modifier = Modifier.weight(2f),
+                textAlign = TextAlign.Start
+            )
+            Text(
+                text = "Czas",
+                style = TextStyle(
+                    fontFamily = poppinsFontFamily(),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp
+                ),
+                color = colors.textColorMain,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Start
+            )
+            Text(
+                text = "Ton",
+                style = TextStyle(
+                    fontFamily = poppinsFontFamily(),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp
+                ),
+                color = colors.textColorMain,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Start
+            )
+            Text(
+                text = "BPM",
+                style = TextStyle(
+                    fontFamily = poppinsFontFamily(),
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 12.sp
+                ),
+                color = colors.textColorMain,
+                modifier = Modifier.weight(1f),
+                textAlign = TextAlign.Start
+            )
+            Spacer(modifier = Modifier.width(80.dp))
+        }
     }
 }
 
@@ -488,30 +490,51 @@ fun SampleListItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.Center,
+            .background(
+                if (currentlyPlayingUrl == songUrl) colors.primaryBackgroundColorLight.copy(
+                    alpha = 0.3f
+                ) else Color.Transparent
+            )
+            .padding(vertical = 8.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        PlayPauseButton(
-            isPlaying = (isPlaying && currentlyPlayingUrl == songUrl),
-            currentlyPlayingUrl = currentlyPlayingUrl,
-            songUrl = songUrl,
-            onPlayPauseClick = {
-                onPlayPauseClick(
-                    songUrl,
-                    fileName,
-                    bpm,
-                    tone,
-                    songId,
-                    tags
-                )
-            },
-        )
-        ScrollingText(
-            fileName = fileName,
+        Box(modifier = Modifier.width(40.dp)) {
+            PlayPauseButton(
+                isPlaying = (isPlaying && currentlyPlayingUrl == songUrl),
+                currentlyPlayingUrl = currentlyPlayingUrl,
+                songUrl = songUrl,
+                onPlayPauseClick = {
+                    onPlayPauseClick(songUrl, fileName, bpm, tone, songId, tags)
+                },
+                modifier = Modifier.size(32.dp)
+            )
+        }
+
+        Column(
             modifier = Modifier
-                .weight(2f)
-        )
+                .weight(3f)
+                .padding(horizontal = 8.dp)
+        ) {
+            Text(
+                text = fileName,
+                style = TextStyle(
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (tags.isNotEmpty()) {
+                Text(
+                    text = tags.joinToString(", "),
+                    style = TextStyle(fontSize = 12.sp),
+                    color = colors.hintTextColorMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
         Text(
             text = duration,
             modifier = Modifier.weight(1f),
@@ -535,34 +558,52 @@ fun SampleListItem(
             style = MaterialTheme.typography.body2
         )
 
-        Image(
-            painterResource(if (isLiked) Res.drawable.icon_heart_filled else Res.drawable.icon_heart),
-            contentDescription = if (isLiked) "Unfavorite" else "Favorite",
-            modifier = Modifier
-                .weight(1f)
-                .size(30.dp)
-                .clickable { onLikeClick(soundId) }
-                .wrapContentSize(Alignment.Center)
-        )
+        Row(
+            modifier = Modifier.width(80.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = { onLikeClick(soundId) },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Image(
+                    painter = painterResource(
+                        if (isLiked) Res.drawable.icon_heart_filled
+                        else Res.drawable.icon_heart
+                    ),
+                    contentDescription = if (isLiked) "Unfavorite" else "Favorite",
+                    modifier = Modifier.size(20.dp),
+                    colorFilter = ColorFilter.tint(if (isLiked) colors.barColor else colors.textColorMain)
+                )
+            }
 
-        Image(
-            painterResource(Res.drawable.icon_properties_menu),
-            contentDescription = "Properties menu",
-            modifier = Modifier
-                .weight(1f)
-                .size(30.dp)
-                .clickable { expanded = true }
-                .wrapContentSize(Alignment.Center)
-        )
+            IconButton(
+                onClick = { expanded = true },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Image(
+                    painter = painterResource(Res.drawable.icon_properties_menu),
+                    contentDescription = "Properties menu",
+                    modifier = Modifier.size(20.dp),
+                    colorFilter = ColorFilter.tint(colors.textColorMain)
+                )
+            }
+        }
+
         PropertiesMenu(
             fileUrl = songUrl,
             fileName = fileName,
             expanded = expanded,
             onDismiss = { expanded = false },
-            onOptionSelected = { option ->
-                println("Selected option: $option")
-            },
+            onOptionSelected = { option -> println("Selected option: $option") },
             alignRight = true
         )
     }
+
+    Divider(
+        color = colors.dividerLightGray,
+        thickness = 0.5.dp,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
 }

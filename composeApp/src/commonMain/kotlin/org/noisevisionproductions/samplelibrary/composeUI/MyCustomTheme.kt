@@ -81,12 +81,12 @@ fun MyCustomTheme(content: @Composable () -> Unit) {
         body1 = TextStyle(
             fontFamily = poppinsFontFamily(),
             fontWeight = FontWeight.Normal,
-            color = black100 // Czarny 100%
+            color = black100
         ),
         body2 = TextStyle(
             fontFamily = poppinsFontFamily(),
             fontWeight = FontWeight.Normal,
-            color = black50 // Czarny 50%
+            color = black50
         )
     )
 
